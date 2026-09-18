@@ -90,9 +90,11 @@ function searchHdf(baseDomain: string, query: string): Array<{ title: string; hr
         "-A", CHROME_UA,
         "-H", "X-Requested-With: fetch",
         "-H", `Referer: ${baseDomain}/`,
+        "--connect-timeout", "8",
+        "-m", "14",
         searchUrl,
       ],
-      { timeout: 7000 }
+      { timeout: 15000 }
     ).toString("utf8");
 
     const json = JSON.parse(raw);
@@ -155,9 +157,11 @@ export function resolveHdfSeriesEpisode(
             "-L",
             "-A", CHROME_UA,
             "-H", `Referer: ${baseDomain}/`,
+            "--connect-timeout", "8",
+            "-m", "14",
             seriesItem.href,
           ],
-          { timeout: 7000 }
+          { timeout: 15000 }
         ).toString("utf8");
 
         // Look for matching season and episode link
@@ -180,9 +184,11 @@ export function resolveHdfSeriesEpisode(
             "-L",
             "-A", CHROME_UA,
             "-H", `Referer: ${seriesItem.href}`,
+            "--connect-timeout", "8",
+            "-m", "14",
             episodeUrl,
           ],
-          { timeout: 7000 }
+          { timeout: 15000 }
         ).toString("utf8");
 
         const iframeMatch = epHtml.match(/<iframe[^>]+(?:src|data-src)=["']([^"']+)["']/i);
@@ -199,9 +205,11 @@ export function resolveHdfSeriesEpisode(
             "-L",
             "-A", CHROME_UA,
             "-H", `Referer: ${episodeUrl}`,
+            "--connect-timeout", "8",
+            "-m", "15",
             iframeUrl,
           ],
-          { timeout: 9000 }
+          { timeout: 16000 }
         ).toString("utf8");
 
         const m3u8Url = decryptHdfStream(embedHtml);
@@ -266,9 +274,11 @@ export function resolveHdfMovie(
             "-L",
             "-A", CHROME_UA,
             "-H", `Referer: ${baseDomain}/`,
+            "--connect-timeout", "8",
+            "-m", "14",
             movieItem.href,
           ],
-          { timeout: 7000 }
+          { timeout: 15000 }
         ).toString("utf8");
 
         const iframeMatch = movieHtml.match(/<iframe[^>]+(?:src|data-src)=["']([^"']+)["']/i);
@@ -285,9 +295,11 @@ export function resolveHdfMovie(
             "-L",
             "-A", CHROME_UA,
             "-H", `Referer: ${movieItem.href}`,
+            "--connect-timeout", "8",
+            "-m", "15",
             iframeUrl,
           ],
-          { timeout: 9000 }
+          { timeout: 16000 }
         ).toString("utf8");
 
         const m3u8Url = decryptHdfStream(embedHtml);

@@ -32,10 +32,9 @@ const PROVIDER_SEEDS: Record<StreamProvider, string[]> = {
     "https://fullhdfilmizlesene.cx",
   ],
   dizipal: [
-    "https://dizipalorjinal8.com",
-    "https://dizipal30.com",
     "https://dizipalguncel.co",
     "https://dizipal1581.com",
+    "https://dizipal30.com",
   ],
 };
 
@@ -43,11 +42,11 @@ const DEFAULT_DOMAINS: Record<StreamProvider, string> = {
   hdfilmcehennemi: "https://www.hdfilmcehennemi.nl",
   dizilla: "https://dizilla.now",
   fullhdfilmizlesene: "https://www.fullhdfilmizlesene.now",
-  dizipal: "https://dizipalorjinal8.com",
+  dizipal: "https://dizipal1581.com",
 };
 
 const CACHE_FILE = path.join(process.cwd(), "data", "active-domains.json");
-const DOMAIN_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+const DOMAIN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 // In-memory cache
 const memoryCache = new Map<StreamProvider, DomainCacheEntry>();
@@ -75,7 +74,7 @@ function saveCacheToFile(data: Record<string, string>) {
 /**
  * Checks a candidate URL, follows redirects, and returns the active origin URL.
  */
-function probeUrl(url: string, timeoutSec: number = 4): string | null {
+function probeUrl(url: string, timeoutSec: number = 9): string | null {
   try {
     const res = execFileSync(
       CURL_BIN,
@@ -85,11 +84,11 @@ function probeUrl(url: string, timeoutSec: number = 4): string | null {
         "-w", "%{http_code}|%{url_effective}",
         "-L",
         "-A", CHROME_UA,
-        "--connect-timeout", "3",
+        "--connect-timeout", "6",
         "-m", String(timeoutSec),
         url,
       ],
-      { timeout: (timeoutSec + 2) * 1000 }
+      { timeout: (timeoutSec + 4) * 1000 }
     )
       .toString("utf8")
       .trim();
@@ -115,11 +114,11 @@ function resolveDizipalDomain(): string {
         "-s",
         "-L",
         "-A", CHROME_UA,
-        "--connect-timeout", "3",
-        "-m", "5",
+        "--connect-timeout", "6",
+        "-m", "10",
         "https://dizipalguncel.co",
       ],
-      { timeout: 6000 }
+      { timeout: 12000 }
     ).toString("utf8");
 
     const match = html.match(/href="([^"]*dizipal[^"]*)"/i);

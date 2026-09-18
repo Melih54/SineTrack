@@ -27,8 +27,8 @@ export function resolveFullHDSource(
   for (const q of queries) {
     try {
       const searchUrl = `${baseDomain}/arama/${encodeURIComponent(q.trim())}`;
-      const curlCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${searchUrl}"`;
-      const html = execSync(curlCmd, { maxBuffer: 10 * 1024 * 1024, timeout: 10000 }).toString("utf8");
+      const curlCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --connect-timeout 8 -m 14 "${searchUrl}"`;
+      const html = execSync(curlCmd, { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }).toString("utf8");
 
       const matches = html.match(/href="https?:\/\/[^"]*\/film\/([^"]+)\/"/g);
       if (!matches || matches.length === 0) continue;
@@ -40,8 +40,8 @@ export function resolveFullHDSource(
         const slug = slugMatch[1];
 
         const filmUrl = `${baseDomain}/film/${slug}/`;
-        const filmCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${filmUrl}"`;
-        const filmHtml = execSync(filmCmd, { maxBuffer: 10 * 1024 * 1024, timeout: 10000 }).toString("utf8");
+        const filmCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -H "Referer: ${baseDomain}/" --connect-timeout 8 -m 14 "${filmUrl}"`;
+        const filmHtml = execSync(filmCmd, { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }).toString("utf8");
 
         const scxMatch = filmHtml.match(/var\s+scx\s*=\s*({[\s\S]*?});/);
         if (!scxMatch) continue;

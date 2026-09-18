@@ -17,66 +17,7 @@ export async function GET(req: Request) {
     ? resolveHdfMovie(title, originalTitle)
     : resolveHdfSeriesEpisode(title, originalTitle, season, episode);
 
-  const tmdbId = searchParams.get("tmdbId");
-
   if (!hdf || !hdf.m3u8Url) {
-    if (tmdbId) {
-      const fallbackUrl =
-        lang === "tr_dub"
-          ? isMovie
-            ? `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&audio=tr`
-            : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&audio=tr`
-          : isMovie
-            ? `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&sub=Turkish`
-            : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&sub=Turkish`;
-
-      return new NextResponse(
-        `<!DOCTYPE html>
-        <html lang="tr">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-          <title>${title} ${!isMovie ? `- ${season}. Sezon ${episode}. Bölüm` : ""}</title>
-          <style>
-            * { margin:0; padding:0; box-sizing:border-box; }
-            html, body { width:100%; height:100%; background:#000; overflow:hidden; }
-            iframe { width:100%; height:100%; border:none; display:block; }
-            .badge-fallback {
-              position: absolute;
-              top: 10px;
-              left: 12px;
-              z-index: 50;
-              background: rgba(11, 12, 21, 0.88);
-              backdrop-filter: blur(8px);
-              border: 1px solid rgba(245, 158, 11, 0.5);
-              color: #fbbf24;
-              font-size: 11px;
-              font-weight: 700;
-              padding: 4px 10px;
-              border-radius: 8px;
-              font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-              pointer-events: none;
-              display: flex;
-              align-items: center;
-              gap: 6px;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            }
-            .dot { width: 6px; height: 6px; border-radius: 50%; background: #fbbf24; animation: pulse 1.5s infinite; }
-            @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-          </style>
-        </head>
-        <body>
-          <div class="badge-fallback">
-            <span class="dot"></span>
-            <span>Otomatik Türkçe Yayın Sunucusu (${lang === "tr_dub" ? "Türkçe Dublaj" : "Türkçe Altyazı"})</span>
-          </div>
-          <iframe src="${fallbackUrl}" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>
-        </body>
-        </html>`,
-        { headers: { "Content-Type": "text/html; charset=utf-8" } }
-      );
-    }
-
     return new NextResponse(
       `<!DOCTYPE html>
       <html lang="tr">

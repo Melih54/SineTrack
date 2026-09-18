@@ -152,10 +152,11 @@ export function resolveSeriesEpisode(
   for (const slug of slugs) {
     try {
       const url = `${dizillaBase}/${slug}-${season}-sezon-${episode}-bolum`;
-      const html = execFileSync(CURL_BIN, ["-s", "-L", "-A", CHROME_UA, url], {
-        maxBuffer: 10 * 1024 * 1024,
-        timeout: 7000,
-      }).toString("utf8");
+      const html = execFileSync(
+        CURL_BIN,
+        ["-s", "-L", "-A", CHROME_UA, "--connect-timeout", "8", "-m", "14", url],
+        { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
+      ).toString("utf8");
 
       const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
       if (!match) continue;
@@ -188,9 +189,13 @@ export function resolveSeriesEpisode(
               CHROME_UA,
               "-H",
               `Referer: ${dizillaBase}/`,
+              "--connect-timeout",
+              "8",
+              "-m",
+              "14",
               rawSrc,
             ],
-            { maxBuffer: 10 * 1024 * 1024, timeout: 6000 }
+            { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
           ).toString("utf8");
 
           if (pHtml.includes("Attention Required") || pHtml.includes("Video bulunamadı")) {
@@ -210,14 +215,33 @@ export function resolveSeriesEpisode(
                 CHROME_UA,
                 "-H",
                 `Referer: ${rawSrc}`,
+                "--connect-timeout",
+                "8",
+                "-m",
+                "14",
                 `https://${host}/source2.php?v=${encodeURIComponent(plMatch[1])}`,
               ],
-              { maxBuffer: 10 * 1024 * 1024, timeout: 6000 }
+              { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
             ).toString("utf8");
 
             const s2Json = JSON.parse(s2Raw);
             if (s2Json.state && s2Json.playlist?.[0]?.sources?.[0]?.file) {
               const m3u8Url = s2Json.playlist[0].sources[0].file.replace("m.php", "master.m3u8");
+
+              // Verify that m3u8Url actually returns a valid playlist before accepting
+              let isWorking = false;
+              try {
+                const probe = execFileSync(
+                  CURL_BIN,
+                  ["-s", "-L", "-A", CHROME_UA, "-H", `Referer: ${rawSrc}`, "--connect-timeout", "6", "-m", "10", m3u8Url],
+                  { timeout: 12000 }
+                ).toString("utf8");
+                isWorking = probe.includes("#EXTM3U");
+              } catch {}
+
+              if (!isWorking) {
+                continue; // Stream dead/blocked, try next source or fallback to HDFilmCehennemi
+              }
 
               results.push({
                 provider: "Dizilla",
@@ -243,7 +267,6 @@ export function resolveSeriesEpisode(
                 subtitles: subs,
               });
 
-              // Bulunan ilk geçerli çalışan kaynağı kabul et ve döngüden çık
               break;
             }
           }
@@ -293,10 +316,11 @@ export function resolveSeriesEpisode(
     for (const slug of slugs) {
       try {
         const url = `${dizipalBase}/bolum/${slug}-${season}x${episode}`;
-        const html = execFileSync(CURL_BIN, ["-s", "-L", "-A", CHROME_UA, url], {
-          maxBuffer: 10 * 1024 * 1024,
-          timeout: 6000,
-        }).toString("utf8");
+        const html = execFileSync(
+          CURL_BIN,
+          ["-s", "-L", "-A", CHROME_UA, "--connect-timeout", "8", "-m", "14", url],
+          { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
+        ).toString("utf8");
 
         if (html.includes("Attention Required")) continue;
 
@@ -316,9 +340,13 @@ export function resolveSeriesEpisode(
             CHROME_UA,
             "-H",
             `Referer: ${dizipalBase}/`,
+            "--connect-timeout",
+            "8",
+            "-m",
+            "14",
             iframeSrc,
           ],
-          { maxBuffer: 10 * 1024 * 1024, timeout: 6000 }
+          { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
         ).toString("utf8");
 
         if (pHtml.includes("Attention Required")) continue;
@@ -334,9 +362,13 @@ export function resolveSeriesEpisode(
               CHROME_UA,
               "-H",
               `Referer: ${iframeSrc}`,
+              "--connect-timeout",
+              "8",
+              "-m",
+              "14",
               `https://${host}/source2.php?v=${plMatch[1]}`,
             ],
-            { maxBuffer: 10 * 1024 * 1024, timeout: 6000 }
+            { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
           ).toString("utf8");
 
           const sJson = JSON.parse(sBody);

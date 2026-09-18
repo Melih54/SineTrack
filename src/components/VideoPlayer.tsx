@@ -98,6 +98,7 @@ export default function VideoPlayer({
   const [isCinemaMode, setIsCinemaMode] = useState(false);
   const [showEpisodeModal, setShowEpisodeModal] = useState(false);
   const [showSubGuideModal, setShowSubGuideModal] = useState(false);
+  const [showServersMenu, setShowServersMenu] = useState(false);
   const [drawerSelectedSeason, setDrawerSelectedSeason] = useState(season || 1);
   const [showSubGuide, setShowSubGuide] = useState(false);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -951,91 +952,130 @@ export default function VideoPlayer({
       {/* Video Ekranı */}
       {renderVideoContent(false)}
 
-      {/* Sunucu & Kaynak Seçim Çubuğu */}
-      <div className="p-4 bg-[#121522] border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center flex-wrap gap-2">
-          <span className="text-xs text-gray-400 font-medium flex items-center gap-1.5 mr-1">
-            <Server className="w-3.5 h-3.5 text-red-500" />
-            Sunucu Kaynakları:
-          </span>
+      {/* Sunucu & Kaynak Seçim Çubuğu (Açılır / Kapanır) */}
+      <div className="bg-[#121522] border-t border-white/10">
+        {/* Üst Özet Başlık Çubuğu */}
+        <div className="px-4 py-2.5 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <Server className="w-3.5 h-3.5 text-red-500 shrink-0" />
+            <span className="text-gray-400 font-medium shrink-0">Kaynak:</span>
+            <span className="font-bold text-white truncate">
+              {useManualUrl
+                ? "Özel Manuel Link"
+                : activeCustomSourceId
+                ? availableCustomSources.find((s) => s.id === activeCustomSourceId)?.sourceName
+                : currentGeneralServer.name}
+            </span>
+            {!useManualUrl && !activeCustomSourceId && currentGeneralServer.badge && (
+              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                {currentGeneralServer.badge}
+              </span>
+            )}
+          </div>
 
-          {/* Özel Kaynaklar */}
-          {availableCustomSources.map((source) => {
-            const isActive = !useManualUrl && activeCustomSourceId === source.id;
-            return (
-              <button
-                key={source.id}
-                onClick={() => {
-                  setUseManualUrl(false);
-                  setActiveCustomSourceId(source.id);
-                  setReloadKey((k) => k + 1);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/40"
-                    : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5"
-                }`}
-              >
-                <Sparkles className="w-3 h-3 text-amber-300" />
-                <span>{source.sourceName}</span>
-              </button>
-            );
-          })}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Açılır / Kapanır Menü Butonu */}
+            <button
+              type="button"
+              onClick={() => setShowServersMenu(!showServersMenu)}
+              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 hover:text-white font-bold flex items-center gap-1.5 transition-all cursor-pointer text-xs"
+            >
+              <span>
+                {showServersMenu
+                  ? "Menüyü Gizle"
+                  : `Kaynakları Değiştir (${availableServersForLanguage.length + availableCustomSources.length})`}
+              </span>
+              {showServersMenu ? (
+                <ChevronUp className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 text-amber-400" />
+              )}
+            </button>
 
-          {/* Genel Açık Embed Sunucuları */}
-          {availableServersForLanguage.map((server) => {
-            const isActive =
-              !useManualUrl &&
-              !activeCustomSourceId &&
-              currentGeneralServer.id === server.id;
-            return (
-              <button
-                key={server.id}
-                onClick={() => {
-                  setUseManualUrl(false);
-                  setActiveCustomSourceId(null);
-                  setActiveServerId(server.id);
-                  setReloadKey((k) => k + 1);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive
-                    ? "bg-red-600 text-white shadow-md shadow-red-600/40"
-                    : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5"
-                }`}
-              >
-                <span>{server.name}</span>
-                {server.badge && (
-                  <span className="px-1.5 py-0.2 text-[9px] uppercase font-bold rounded bg-black/40 text-amber-300">
-                    {server.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-
-          {/* Manuel Link Girişi Butonu */}
-          <button
-            onClick={() => setUseManualUrl(!useManualUrl)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-              useManualUrl
-                ? "bg-amber-600 text-white shadow-md"
-                : "bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5"
-            }`}
-          >
-            <LinkIcon className="w-3.5 h-3.5" />
-            <span>Kendi Linkini Yapıştır</span>
-          </button>
+            {/* Yenile Butonu */}
+            <button
+              type="button"
+              onClick={() => setReloadKey((prev) => prev + 1)}
+              title="Oynatıcıyı Yeniden Yükle"
+              className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Yenile</span>
+            </button>
+          </div>
         </div>
 
-        {/* Yenile Butonu */}
-        <button
-          onClick={() => setReloadKey((prev) => prev + 1)}
-          title="Oynatıcıyı Yeniden Yükle"
-          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-medium border border-white/5 cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Yenile</span>
-        </button>
+        {/* Genişleyen Sunucu Listesi */}
+        {showServersMenu && (
+          <div className="px-4 pb-4 pt-2 border-t border-white/5 flex flex-wrap items-center gap-2 animate-in fade-in duration-150">
+            {/* Özel Kaynaklar */}
+            {availableCustomSources.map((source) => {
+              const isActive = !useManualUrl && activeCustomSourceId === source.id;
+              return (
+                <button
+                  key={source.id}
+                  onClick={() => {
+                    setUseManualUrl(false);
+                    setActiveCustomSourceId(source.id);
+                    setReloadKey((k) => k + 1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/40"
+                      : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5"
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3 text-amber-300" />
+                  <span>{source.sourceName}</span>
+                </button>
+              );
+            })}
+
+            {/* Genel Türkçe Embed Sunucuları */}
+            {availableServersForLanguage.map((server) => {
+              const isActive =
+                !useManualUrl &&
+                !activeCustomSourceId &&
+                currentGeneralServer.id === server.id;
+              return (
+                <button
+                  key={server.id}
+                  onClick={() => {
+                    setUseManualUrl(false);
+                    setActiveCustomSourceId(null);
+                    setActiveServerId(server.id);
+                    setReloadKey((k) => k + 1);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? "bg-red-600 text-white shadow-md shadow-red-600/40 font-bold ring-1 ring-red-400"
+                      : "bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5"
+                  }`}
+                >
+                  <span>{server.name}</span>
+                  {server.badge && (
+                    <span className="px-1.5 py-0.5 text-[9px] uppercase font-bold rounded bg-black/40 text-amber-300">
+                      {server.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Manuel Link Girişi Butonu */}
+            <button
+              onClick={() => setUseManualUrl(!useManualUrl)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                useManualUrl
+                  ? "bg-amber-600 text-white shadow-md"
+                  : "bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5"
+              }`}
+            >
+              <LinkIcon className="w-3.5 h-3.5" />
+              <span>Kendi Linkini Yapıştır</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Manuel Link Girişi Kutusu */}
