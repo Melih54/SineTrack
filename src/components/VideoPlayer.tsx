@@ -597,8 +597,7 @@ export default function VideoPlayer({
       {/* 3. SİNEMA MODU: SABİT VE TAŞMAYAN TAM EKRAN TİYATRO SALONU */}
       {isCinemaMode && (
         <div
-          className="fixed inset-0 z-50 bg-[#05060a]/98 backdrop-blur-2xl flex flex-col h-screen w-screen overflow-hidden select-none animate-in fade-in duration-200"
-          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-50 bg-[#05060a]/98 backdrop-blur-2xl flex flex-col h-screen w-screen overflow-hidden animate-in fade-in duration-200"
         >
           {/* SİNEMA MODU ÜST KONTROL ÇUBUĞU */}
           <header className="shrink-0 w-full px-3 sm:px-6 py-2.5 bg-[#0c0e18]/95 border-b border-white/10 z-30 shadow-2xl flex flex-col gap-2">

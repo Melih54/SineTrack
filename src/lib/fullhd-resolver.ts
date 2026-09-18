@@ -1,6 +1,7 @@
 import { execSync } from "child_process";
 import { getWorkingDomain } from "./domain-resolver";
 import { resolveHdfMovie } from "./hdfilmcehennemi-resolver";
+import { CURL_BIN } from "./curl";
 
 export function rtt(e: string): string {
   return (e + "").replace(/[a-z]/gi, function (c) {
@@ -26,7 +27,7 @@ export function resolveFullHDSource(
   for (const q of queries) {
     try {
       const searchUrl = `${baseDomain}/arama/${encodeURIComponent(q.trim())}`;
-      const curlCmd = `curl.exe -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${searchUrl}"`;
+      const curlCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${searchUrl}"`;
       const html = execSync(curlCmd, { maxBuffer: 10 * 1024 * 1024, timeout: 10000 }).toString("utf8");
 
       const matches = html.match(/href="https?:\/\/[^"]*\/film\/([^"]+)\/"/g);
@@ -39,7 +40,7 @@ export function resolveFullHDSource(
         const slug = slugMatch[1];
 
         const filmUrl = `${baseDomain}/film/${slug}/`;
-        const filmCmd = `curl.exe -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${filmUrl}"`;
+        const filmCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" "${filmUrl}"`;
         const filmHtml = execSync(filmCmd, { maxBuffer: 10 * 1024 * 1024, timeout: 10000 }).toString("utf8");
 
         const scxMatch = filmHtml.match(/var\s+scx\s*=\s*({[\s\S]*?});/);

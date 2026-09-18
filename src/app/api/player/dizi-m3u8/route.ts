@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { resolveSeriesEpisode } from "@/lib/series-resolver";
 import { resolveHdfMovie } from "@/lib/hdfilmcehennemi-resolver";
 import { execFileSync } from "child_process";
+import { CURL_BIN } from "@/lib/curl";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
   if (playlistUrl) {
     try {
       const content = execFileSync(
-        "curl.exe",
+        CURL_BIN,
         [
           "-s",
           "-A",
@@ -91,7 +92,7 @@ export async function GET(req: Request) {
 
   try {
     const masterContent = execFileSync(
-      "curl.exe",
+      CURL_BIN,
       [
         "-s",
         "-A",

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { execSync } from "child_process";
 import { resolveFullHDSource } from "@/lib/fullhd-resolver";
+import { CURL_BIN } from "@/lib/curl";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const curlCmd = `curl.exe -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -H "Referer: https://www.fullhdfilmizlesene.now/" "${targetUrl}"`;
+    const curlCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -H "Referer: https://www.fullhdfilmizlesene.now/" "${targetUrl}"`;
     let html = execSync(curlCmd, { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }).toString("utf8");
 
     const baseDomain = targetUrl.startsWith("https://rapidvid.org")

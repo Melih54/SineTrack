@@ -1,6 +1,7 @@
 import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import { CURL_BIN, DEV_NULL } from "./curl";
 
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -76,10 +77,10 @@ function saveCacheToFile(data: Record<string, string>) {
 function probeUrl(url: string, timeoutSec: number = 4): string | null {
   try {
     const res = execFileSync(
-      "curl.exe",
+      CURL_BIN,
       [
         "-s",
-        "-o", "NUL",
+        "-o", DEV_NULL,
         "-w", "%{http_code}|%{url_effective}",
         "-L",
         "-A", CHROME_UA,
@@ -108,7 +109,7 @@ function probeUrl(url: string, timeoutSec: number = 4): string | null {
 function resolveDizipalDomain(): string {
   try {
     const html = execFileSync(
-      "curl.exe",
+      CURL_BIN,
       [
         "-s",
         "-L",

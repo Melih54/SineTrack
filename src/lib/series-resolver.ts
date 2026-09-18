@@ -2,6 +2,7 @@ import { execFileSync } from "child_process";
 import crypto from "crypto";
 import { getWorkingDomain } from "./domain-resolver";
 import { resolveHdfSeriesEpisode } from "./hdfilmcehennemi-resolver";
+import { CURL_BIN } from "./curl";
 
 const DIZILLA_ALGO = "aes-256-cbc";
 const DIZILLA_KEY = crypto.createHash("sha256").update("!!22xx!!90!!").digest("base64").substring(0, 32);
@@ -151,7 +152,7 @@ export function resolveSeriesEpisode(
   for (const slug of slugs) {
     try {
       const url = `${dizillaBase}/${slug}-${season}-sezon-${episode}-bolum`;
-      const html = execFileSync("curl.exe", ["-s", "-L", "-A", CHROME_UA, url], {
+      const html = execFileSync(CURL_BIN, ["-s", "-L", "-A", CHROME_UA, url], {
         maxBuffer: 10 * 1024 * 1024,
         timeout: 7000,
       }).toString("utf8");
@@ -180,7 +181,7 @@ export function resolveSeriesEpisode(
 
         try {
           const pHtml = execFileSync(
-            "curl.exe",
+            CURL_BIN,
             [
               "-s",
               "-A",
@@ -202,7 +203,7 @@ export function resolveSeriesEpisode(
           if (plMatch) {
             const host = new URL(rawSrc).host;
             const s2Raw = execFileSync(
-              "curl.exe",
+              CURL_BIN,
               [
                 "-s",
                 "-A",
@@ -222,7 +223,7 @@ export function resolveSeriesEpisode(
               let isWorking = false;
               try {
                 const probe = execFileSync(
-                  "curl.exe",
+                  CURL_BIN,
                   ["-s", "-L", "-A", CHROME_UA, "-H", `Referer: ${rawSrc}`, "--connect-timeout", "2", "-m", "3", m3u8Url],
                   { timeout: 3500 }
                 ).toString("utf8");
@@ -306,7 +307,7 @@ export function resolveSeriesEpisode(
     for (const slug of slugs) {
       try {
         const url = `${dizipalBase}/bolum/${slug}-${season}x${episode}`;
-        const html = execFileSync("curl.exe", ["-s", "-L", "-A", CHROME_UA, url], {
+        const html = execFileSync(CURL_BIN, ["-s", "-L", "-A", CHROME_UA, url], {
           maxBuffer: 10 * 1024 * 1024,
           timeout: 6000,
         }).toString("utf8");
@@ -322,7 +323,7 @@ export function resolveSeriesEpisode(
         if (iframeSrc.startsWith("//")) iframeSrc = "https:" + iframeSrc;
 
         const pHtml = execFileSync(
-          "curl.exe",
+          CURL_BIN,
           [
             "-s",
             "-A",
@@ -340,7 +341,7 @@ export function resolveSeriesEpisode(
         if (plMatch) {
           const host = new URL(iframeSrc).host;
           const sBody = execFileSync(
-            "curl.exe",
+            CURL_BIN,
             [
               "-s",
               "-A",

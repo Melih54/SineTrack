@@ -1,6 +1,7 @@
 import { execFileSync } from "child_process";
 import vm from "vm";
 import { getWorkingDomain } from "./domain-resolver";
+import { CURL_BIN } from "./curl";
 
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -82,7 +83,7 @@ function searchHdf(baseDomain: string, query: string): Array<{ title: string; hr
   try {
     const searchUrl = `${baseDomain}/search?q=${encodeURIComponent(query.trim())}`;
     const raw = execFileSync(
-      "curl.exe",
+      CURL_BIN,
       [
         "-s",
         "-L",
@@ -148,7 +149,7 @@ export function resolveHdfSeriesEpisode(
 
         // Fetch series main page to find the episode URL
         const seriesHtml = execFileSync(
-          "curl.exe",
+          CURL_BIN,
           [
             "-s",
             "-L",
@@ -173,7 +174,7 @@ export function resolveHdfSeriesEpisode(
 
         // Fetch episode page to find the embed iframe
         const epHtml = execFileSync(
-          "curl.exe",
+          CURL_BIN,
           [
             "-s",
             "-L",
@@ -192,7 +193,7 @@ export function resolveHdfSeriesEpisode(
 
         // Fetch embed iframe page
         const embedHtml = execFileSync(
-          "curl.exe",
+          CURL_BIN,
           [
             "-s",
             "-L",
@@ -259,7 +260,7 @@ export function resolveHdfMovie(
 
         // Fetch movie page to find the embed iframe
         const movieHtml = execFileSync(
-          "curl.exe",
+          CURL_BIN,
           [
             "-s",
             "-L",
@@ -278,7 +279,7 @@ export function resolveHdfMovie(
 
         // Fetch embed iframe page
         const embedHtml = execFileSync(
-          "curl.exe",
+          CURL_BIN,
           [
             "-s",
             "-L",

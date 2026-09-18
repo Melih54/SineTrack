@@ -2,7 +2,7 @@ FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat openssl python3 make g++
+RUN apk add --no-cache libc6-compat openssl curl python3 make g++
 WORKDIR /app
 
 # Copy prisma schema FIRST (needed for postinstall prisma generate)
@@ -14,7 +14,7 @@ RUN npm install --legacy-peer-deps
 
 # Rebuild the source code only when needed
 FROM base AS builder
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl curl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -29,7 +29,7 @@ RUN npm run build
 
 # Production image
 FROM base AS runner
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl curl && ln -sf /usr/bin/curl /usr/bin/curl.exe
 WORKDIR /app
 
 ENV NODE_ENV=production
