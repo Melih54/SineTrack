@@ -35,6 +35,12 @@ export async function GET(req: Request) {
       const lines = content.split(/\r?\n/);
       const rewritten = lines.map((line) => {
         const trimmed = line.trim();
+        if (trimmed.startsWith("#EXT-X-KEY")) {
+          return trimmed.replace(/URI="([^"]+)"/, (_, uri) => {
+            const abs = uri.startsWith("http") ? uri : new URL(uri, playlistUrl).href;
+            return `URI="/api/player/stream-proxy?ref=${encodeURIComponent(referer)}&url=${encodeURIComponent(abs)}"`;
+          });
+        }
         if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
           return `/api/player/stream-proxy?ref=${encodeURIComponent(referer)}&url=${encodeURIComponent(trimmed)}`;
         }
@@ -129,6 +135,14 @@ export async function GET(req: Request) {
     const rewritten = lines.map((line) => {
       let l = line.trim();
 
+      // I-FRAME stream inf rewriting
+      if (l.startsWith("#EXT-X-I-FRAME-STREAM-INF")) {
+        return l.replace(/URI="([^"]+)"/, (_, uri) => {
+          const absUri = uri.startsWith("http") ? uri : new URL(uri, streamUrl).href;
+          return `URI="/api/player/dizi-m3u8?playlistUrl=${encodeURIComponent(absUri)}&ref=${encodeURIComponent(referer)}"`;
+        });
+      }
+
       // Audio track rewriting
       if (l.startsWith("#EXT-X-MEDIA:TYPE=AUDIO")) {
         const lowerLine = l.toLowerCase();
@@ -147,6 +161,14 @@ export async function GET(req: Request) {
           return `URI="/api/player/dizi-m3u8?playlistUrl=${encodeURIComponent(absUri)}&ref=${encodeURIComponent(referer)}"`;
         });
         return l;
+      }
+
+      // Subtitles rewriting in master playlist if present
+      if (l.startsWith("#EXT-X-MEDIA:TYPE=SUBTITLES")) {
+        return l.replace(/URI="([^"]+)"/, (_, uri) => {
+          const absUri = uri.startsWith("http") ? uri : new URL(uri, streamUrl).href;
+          return `URI="/api/player/stream-proxy?ref=${encodeURIComponent(referer)}&url=${encodeURIComponent(absUri)}"`;
+        });
       }
 
       // Video playlist URL rewriting

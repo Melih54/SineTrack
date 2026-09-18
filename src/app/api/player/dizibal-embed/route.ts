@@ -77,12 +77,13 @@ export async function GET(req: Request) {
     );
   }
 
-  // Proxied master stream URL so CORS & Referer headers are handled seamlessly
-  const proxiedMasterStream = `/api/player/stream-proxy?ref=${encodeURIComponent(referer)}&url=${encodeURIComponent(m3u8Url)}`;
+  // Proxied master stream URL via dizi-m3u8 so child playlists and all chunks are rewritten through proxy
+  const proxiedMasterStream = `/api/player/dizi-m3u8?title=${encodeURIComponent(displayTitle)}&tmdbId=${tmdbId || ""}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=${lang}&streamUrl=${encodeURIComponent(m3u8Url)}&ref=${encodeURIComponent(referer)}`;
 
   const tracksHtml = subtitles
     .map((sub) => {
-      const subProxyUrl = `/api/player/stream-proxy?ref=${encodeURIComponent(referer)}&url=${encodeURIComponent(sub.file)}`;
+      const absFile = sub.file.startsWith("http") ? sub.file : new URL(sub.file, referer).href;
+      const subProxyUrl = `/api/player/stream-proxy?ref=${encodeURIComponent(referer)}&url=${encodeURIComponent(absFile)}`;
       const isDefault = sub.lang === "tr" && lang !== "original";
       return `<track label="${sub.label}" kind="subtitles" srclang="${sub.lang}" src="${subProxyUrl}" ${isDefault ? "default" : ""}>`;
     })
@@ -287,9 +288,13 @@ export async function GET(req: Request) {
       hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
         notify("STREAM_READY");
         if (data.audioTracks && data.audioTracks.length > 0) {
+          const isDub = "${lang}" === "tr_dub";
           const trIndex = data.audioTracks.findIndex(t => /turk|türk|tr/i.test(t.name || t.lang));
-          if (trIndex !== -1) {
+          const origIndex = data.audioTracks.findIndex(t => !/turk|türk|tr/i.test(t.name || t.lang));
+          if (isDub && trIndex !== -1) {
             hls.audioTrack = trIndex;
+          } else if (!isDub && origIndex !== -1) {
+            hls.audioTrack = origIndex;
           }
         }
         hideLoader();

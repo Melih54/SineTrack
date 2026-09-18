@@ -74,20 +74,13 @@ export async function POST(req: Request) {
       let subUrl = "";
 
       if (isTv) {
-        videoUrl = `/api/player/dizi-embed?title={title}&season={season}&episode={episode}&lang=tr_dub`;
-        dubUrl = `/api/player/dizi-embed?title={title}&season={season}&episode={episode}&lang=tr_dub`;
-        subUrl = `/api/player/dizi-embed?title={title}&season={season}&episode={episode}&lang=tr_sub`;
+        videoUrl = `/api/player/dizibal-embed?title={title}&tmdbId=${tmdbId}&mediaType=tv&season={season}&episode={episode}&lang=tr_sub`;
+        dubUrl = `/api/player/dizibal-embed?title={title}&tmdbId=${tmdbId}&mediaType=tv&season={season}&episode={episode}&lang=tr_dub`;
+        subUrl = `/api/player/dizibal-embed?title={title}&tmdbId=${tmdbId}&mediaType=tv&season={season}&episode={episode}&lang=tr_sub`;
       } else {
-        const atom = resolveFullHDSource(title, originalTitle);
-        if (atom) {
-          videoUrl = atom.embedUrl;
-          dubUrl = atom.embedUrl;
-          subUrl = atom.embedUrl;
-        } else {
-          videoUrl = `/api/player/hdf-embed?title=${encodeURIComponent(title)}&year=${releaseYear || ""}`;
-          dubUrl = `/api/player/hdf-embed?title=${encodeURIComponent(title)}&year=${releaseYear || ""}&lang=tr_dub`;
-          subUrl = `/api/player/hdf-embed?title=${encodeURIComponent(title)}&year=${releaseYear || ""}&lang=tr_sub`;
-        }
+        videoUrl = `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=movie&lang=tr_sub`;
+        dubUrl = `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=movie&lang=tr_dub`;
+        subUrl = `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=movie&lang=tr_sub`;
       }
 
       const seasonsCount = isTv

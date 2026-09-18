@@ -18,6 +18,12 @@ export async function GET(req: Request) {
   }
 
   if (!targetUrl) {
+    if (title) {
+      // Fallback seamlessly to dizibal-embed!
+      const fallbackUrl = `/api/player/dizibal-embed?${searchParams.toString()}`;
+      return NextResponse.redirect(new URL(fallbackUrl, req.url));
+    }
+
     return new NextResponse(
       `<html><body style="background:#0b0c15;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
         <div>
@@ -76,6 +82,11 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: any) {
+    if (title) {
+      const fallbackUrl = `/api/player/dizibal-embed?${searchParams.toString()}`;
+      return NextResponse.redirect(new URL(fallbackUrl, req.url));
+    }
+
     return new NextResponse(
       `<html><body style="background:#0b0c15;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
         <div>

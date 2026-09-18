@@ -254,18 +254,6 @@ export default function VideoPlayer({
   } else if (activeCustom) {
     rawUrlToPlay = formatEpisodeUrl(activeCustom.url, { tmdbId, season, episode, mediaType, title });
     activeSourceName = activeCustom.sourceName;
-  } else if (activeServerId.startsWith("atom-player") && (dynamicDubUrl?.includes("atom-embed") || dynamicDirectUrl?.includes("atom-embed"))) {
-    rawUrlToPlay = dynamicDubUrl?.includes("atom-embed") ? dynamicDubUrl : (dynamicDirectUrl || "");
-    activeSourceName = "⚡ Atom HD (FullHD TR Dublaj & Altyazı)";
-  } else if (activeServerId.startsWith("atom-player") && mediaType === "tv") {
-    rawUrlToPlay = currentGeneralServer.getUrl({
-      mediaType,
-      tmdbId: tmdbId || 0,
-      season,
-      episode,
-      title,
-    });
-    activeSourceName = selectedLanguage === "tr_dub" ? "⚡ Dizipal & Dizilla (Türkçe Dublaj)" : "⚡ Dizipal & Dizilla (Türkçe Altyazılı)";
   } else if (currentGeneralServer) {
     rawUrlToPlay = currentGeneralServer.getUrl({
       mediaType,

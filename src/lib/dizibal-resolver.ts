@@ -110,7 +110,10 @@ export async function resolveDizibalSource(params: {
           const m = entry.match(/\[(.*?)\](.*)/);
           if (m) {
             const label = m[1].trim();
-            const file = m[2].trim();
+            let file = m[2].trim();
+            if (file.startsWith("/")) {
+              file = origin + file;
+            }
             const lang = /turk|türk|tr/i.test(label) ? "tr" : "en";
             subtitles.push({ label, lang, file });
           }
