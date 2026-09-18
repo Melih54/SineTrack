@@ -3,7 +3,6 @@ export interface EmbedServer {
   name: string;
   badge?: string;
   language: "tr_dub" | "tr_sub" | "original";
-  supportedMediaTypes?: ("movie" | "tv")[];
   getUrl: (params: {
     mediaType: "movie" | "tv";
     tmdbId: number;
@@ -85,13 +84,22 @@ export function parseSmartVideoUrl(rawUrl: string | null | undefined): {
 }
 
 export const EMBED_SERVERS: EmbedServer[] = [
-  // --- TURKCE ALTYAZILI (tr_sub) ---
+  // ==========================================
+  // --- TÜRKÇE ALTYAZILI (tr_sub) ---
+  // ==========================================
+  {
+    id: "dizibal-player-sub",
+    name: "🐝 DiziBal (HLS 1080p)",
+    badge: "Önerilen • Çift Ses",
+    language: "tr_sub",
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
+      `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=tr_sub`,
+  },
   {
     id: "atom-player-sub",
     name: "⚡ Dizipal & Dizilla / Atom",
     badge: "1080p • Takılmasız",
     language: "tr_sub",
-    supportedMediaTypes: ["movie", "tv"],
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
         ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`
@@ -102,51 +110,36 @@ export const EMBED_SERVERS: EmbedServer[] = [
     name: "🔥 HDFilmCehennemi",
     badge: "1080p • Altyazılı",
     language: "tr_sub",
-    supportedMediaTypes: ["movie", "tv"],
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
-      mediaType === "movie"
-        ? `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=movie&lang=tr_sub`
-        : `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&mediaType=tv&lang=tr_sub`,
+      `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=tr_sub`,
   },
   {
     id: "turbofilmizle-sub",
     name: "🚀 TurboFilmizle",
     badge: "HotStream HD",
     language: "tr_sub",
-    supportedMediaTypes: ["movie"], // Movie only
-    getUrl: ({ title = "", tmdbId }) =>
-      `/api/player/turbo-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`,
-  },
-  {
-    id: "multiembed-sub",
-    name: "🌐 MultiEmbed TR",
-    badge: "Türkçe Altyazı • Kesintisiz",
-    language: "tr_sub",
-    supportedMediaTypes: ["movie", "tv"],
-    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1 }) =>
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
-        ? `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&sub=Turkish`
-        : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&sub=Turkish`,
-  },
-  {
-    id: "videasy-sub",
-    name: "🎬 Videasy TR",
-    badge: "4K / 1080p",
-    language: "tr_sub",
-    supportedMediaTypes: ["movie", "tv"],
-    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1 }) =>
-      mediaType === "movie"
-        ? `https://player.videasy.to/movie/${tmdbId}`
-        : `https://player.videasy.to/tv/${tmdbId}/${season}/${episode}`,
+        ? `/api/player/turbo-embed?title=${encodeURIComponent(title)}`
+        : `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=tv&season=${season}&episode=${episode}&lang=tr_sub`,
   },
 
-  // --- TURKCE DUBLAJ (tr_dub) ---
+  // ==========================================
+  // --- TÜRKÇE DUBLAJ (tr_dub) ---
+  // ==========================================
+  {
+    id: "dizibal-player-dub",
+    name: "🐝 DiziBal Dublaj (HLS HD)",
+    badge: "Önerilen • Türkçe Dublaj",
+    language: "tr_dub",
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
+      `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=tr_dub`,
+  },
   {
     id: "atom-player-dub",
     name: "⚡ Dizipal & Dizilla / Atom",
     badge: "1080p • Türkçe Dublaj",
     language: "tr_dub",
-    supportedMediaTypes: ["movie", "tv"],
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
         ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`
@@ -154,43 +147,39 @@ export const EMBED_SERVERS: EmbedServer[] = [
   },
   {
     id: "hdf-player-dub",
-    name: "🔥 HDFilmCehennemi",
+    name: "🔥 HDFilmCehennemi Dublaj",
     badge: "1080p • Türkçe Dublaj",
     language: "tr_dub",
-    supportedMediaTypes: ["movie", "tv"],
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
-      mediaType === "movie"
-        ? `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=movie&lang=tr_dub`
-        : `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&mediaType=tv&lang=tr_dub`,
+      `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=tr_dub`,
   },
   {
     id: "turbofilmizle-dub",
     name: "🚀 TurboFilmizle Dublaj",
     badge: "HotStream HD Dublaj",
     language: "tr_dub",
-    supportedMediaTypes: ["movie"], // Movie only
-    getUrl: ({ title = "", tmdbId }) =>
-      `/api/player/turbo-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`,
-  },
-  {
-    id: "multiembed-dub",
-    name: "🌐 MultiEmbed Dublaj",
-    badge: "Türkçe Ses • Kesintisiz",
-    language: "tr_dub",
-    supportedMediaTypes: ["movie", "tv"],
-    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1 }) =>
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
-        ? `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&audio=tr`
-        : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&audio=tr`,
+        ? `/api/player/turbo-embed?title=${encodeURIComponent(title)}`
+        : `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=tv&season=${season}&episode=${episode}&lang=tr_dub`,
   },
 
-  // --- ORIJINAL DIL (original) ---
+  // ==========================================
+  // --- ORİJİNAL DİL (original) ---
+  // ==========================================
+  {
+    id: "dizibal-player-orig",
+    name: "🐝 DiziBal Orijinal (HLS HD)",
+    badge: "Orijinal Ses",
+    language: "original",
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
+      `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=original`,
+  },
   {
     id: "atom-player-orig",
     name: "⚡ Dizipal & Dizilla / Atom",
     badge: "Orijinal Dil",
     language: "original",
-    supportedMediaTypes: ["movie", "tv"],
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
         ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`
@@ -201,41 +190,17 @@ export const EMBED_SERVERS: EmbedServer[] = [
     name: "🔥 HDFilmCehennemi Orijinal",
     badge: "Orijinal Dil",
     language: "original",
-    supportedMediaTypes: ["movie", "tv"],
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
-      mediaType === "movie"
-        ? `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=movie&lang=original`
-        : `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&mediaType=tv&lang=original`,
+      `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=original`,
   },
   {
     id: "turbofilmizle-orig",
     name: "🚀 TurboFilmizle Orijinal",
     badge: "Orijinal Ses",
     language: "original",
-    supportedMediaTypes: ["movie"], // Movie only
-    getUrl: ({ title = "", tmdbId }) =>
-      `/api/player/turbo-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`,
-  },
-  {
-    id: "multiembed-orig",
-    name: "🌐 MultiEmbed Orijinal",
-    badge: "Orijinal Dil",
-    language: "original",
-    supportedMediaTypes: ["movie", "tv"],
-    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1 }) =>
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
-        ? `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`
-        : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`,
-  },
-  {
-    id: "videasy-orig",
-    name: "🎬 Videasy Orijinal",
-    badge: "1080p",
-    language: "original",
-    supportedMediaTypes: ["movie", "tv"],
-    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1 }) =>
-      mediaType === "movie"
-        ? `https://player.videasy.to/movie/${tmdbId}`
-        : `https://player.videasy.to/tv/${tmdbId}/${season}/${episode}`,
+        ? `/api/player/turbo-embed?title=${encodeURIComponent(title)}`
+        : `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=tv&season=${season}&episode=${episode}&lang=original`,
   },
 ];

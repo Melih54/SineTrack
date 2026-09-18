@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { resolveSeriesEpisode, SeriesStreamSource } from "@/lib/series-resolver";
 import { resolveHdfMovie } from "@/lib/hdfilmcehennemi-resolver";
 
+import { resolveDizibalSource } from "@/lib/dizibal-resolver";
+
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const title = searchParams.get("title") || "";
   const originalTitle = searchParams.get("originalTitle") || null;
+  const tmdbId = searchParams.get("tmdbId") ? Number(searchParams.get("tmdbId")) : undefined;
   const mediaType = searchParams.get("mediaType") || "tv";
   const isMovie = mediaType === "movie";
   const season = parseInt(searchParams.get("season") || "1", 10);
@@ -16,34 +19,55 @@ export async function GET(req: Request) {
 
   let matched: SeriesStreamSource | null = null;
 
-  if (isMovie) {
-    const hdf = resolveHdfMovie(title, originalTitle);
-    if (hdf && hdf.m3u8Url) {
+  // 1. PRIMARY: Try Dizibal REST API (high-speed, exact TMDB match, clean m3u8)
+  try {
+    const dizibalStream = await resolveDizibalSource({
+      title,
+      originalTitle,
+      tmdbId,
+      mediaType: isMovie ? "movie" : "tv",
+      season,
+      episode,
+    });
+    if (dizibalStream && dizibalStream.m3u8Url) {
       matched = {
-        provider: "HDFilmCehennemi",
+        provider: "DiziBal",
         lang,
-        label: "HDFilmCehennemi (1080P)",
+        label: "DiziBal (1080P)",
         quality: "1080P",
-        m3u8Url: hdf.m3u8Url,
-        rawIframeSrc: hdf.embedIframeUrl,
-        referer: hdf.referer,
+        m3u8Url: dizibalStream.m3u8Url,
+        rawIframeSrc: dizibalStream.embedUrl,
+        referer: dizibalStream.referer,
         embedUrl: req.url,
-        subtitles: hdf.subtitles,
+        subtitles: dizibalStream.subtitles,
       };
     }
-  } else {
-    const sources = resolveSeriesEpisode(title, originalTitle, season, episode);
-    matched = sources.find((s) => s.lang === lang) || sources[0] || null;
+  } catch (err) {}
+
+  // 2. FALLBACK: Movie -> HDFilmCehennemi, TV -> Dizilla / Dizipal
+  if (!matched) {
+    if (isMovie) {
+      const hdf = resolveHdfMovie(title, originalTitle);
+      if (hdf && hdf.m3u8Url) {
+        matched = {
+          provider: "HDFilmCehennemi",
+          lang,
+          label: "HDFilmCehennemi (1080P)",
+          quality: "1080P",
+          m3u8Url: hdf.m3u8Url,
+          rawIframeSrc: hdf.embedIframeUrl,
+          referer: hdf.referer,
+          embedUrl: req.url,
+          subtitles: hdf.subtitles,
+        };
+      }
+    } else {
+      const sources = resolveSeriesEpisode(title, originalTitle, season, episode);
+      matched = sources.find((s) => s.lang === lang) || sources[0] || null;
+    }
   }
 
-  const tmdbId = searchParams.get("tmdbId");
-
-  if (!matched || (!matched.m3u8Url && !matched.rawIframeSrc)) {
-    if (tmdbId) {
-      const fallbackUrl = `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}${lang === "tr_dub" ? "&audio=tr" : "&sub=Turkish"}`;
-      return NextResponse.redirect(fallbackUrl, 302);
-    }
-
+  if (!matched || !matched.m3u8Url) {
     return new NextResponse(
       `<!DOCTYPE html>
       <html lang="tr">
@@ -87,35 +111,12 @@ export async function GET(req: Request) {
       <body>
         <div class="box">
           <h3>Kaynak Hazırlanıyor</h3>
-          <p><strong>${title} ${!isMovie ? `(${season}. Sezon ${episode}. Bölüm)` : ""}</strong> için video kaynağı kontrol ediliyor. Lütfen yeniden deneyin veya oynatıcı menüsünden diğer sunuculardan birini seçin.</p>
+          <p><strong>${title} ${!isMovie ? `(${season}. Sezon ${episode}. Bölüm)` : ""}</strong> için video kaynağı kontrol ediliyor (Dizilla, HDFilmCehennemi, Dizipal). Lütfen yeniden deneyin veya oynatıcı menüsünden diğer sunuculardan birini seçin.</p>
           <button onclick="location.reload()">Yeniden Dene</button>
         </div>
       </body>
       </html>`,
       { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } }
-    );
-  }
-
-  // If rawIframeSrc is available but no direct m3u8Url, render clean iframe player
-  if (!matched.m3u8Url && matched.rawIframeSrc) {
-    return new NextResponse(
-      `<!DOCTYPE html>
-      <html lang="tr">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <title>${title} - ${season}. Sezon ${episode}. Bölüm</title>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
-          iframe { width: 100%; height: 100%; border: none; }
-        </style>
-      </head>
-      <body>
-        <iframe src="${matched.rawIframeSrc}" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; encrypted-media; fullscreen"></iframe>
-      </body>
-      </html>`,
-      { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
   }
 

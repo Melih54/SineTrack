@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { execSync } from "child_process";
 import { resolveTurboSource } from "@/lib/turbofilmizle-resolver";
+import { resolveDizibalSource } from "@/lib/dizibal-resolver";
 import { CURL_BIN } from "@/lib/curl";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +11,7 @@ export async function GET(req: Request) {
   let targetUrl = searchParams.get("url");
   const title = searchParams.get("title");
   const originalTitle = searchParams.get("originalTitle");
-
-  const tmdbId = searchParams.get("tmdbId");
+  const tmdbId = searchParams.get("tmdbId") ? Number(searchParams.get("tmdbId")) : undefined;
 
   if (!targetUrl && title) {
     const resolved = resolveTurboSource(title, originalTitle);
@@ -21,9 +21,20 @@ export async function GET(req: Request) {
   }
 
   if (!targetUrl) {
-    if (tmdbId) {
-      return NextResponse.redirect(`https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&sub=Turkish`, 302);
+    if (title) {
+      try {
+        const dizibal = await resolveDizibalSource({
+          title,
+          originalTitle,
+          tmdbId,
+          mediaType: "movie",
+        });
+        if (dizibal && dizibal.m3u8Url) {
+          return NextResponse.redirect(new URL(`/api/player/dizibal-embed?${searchParams.toString()}`, req.url));
+        }
+      } catch (e) {}
     }
+
     return new NextResponse(
       `<!DOCTYPE html><html><body style="background:#0b0c15;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
         <div>

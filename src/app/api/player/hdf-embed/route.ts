@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveHdfSeriesEpisode, resolveHdfMovie } from "@/lib/hdfilmcehennemi-resolver";
+import { resolveDizibalSource } from "@/lib/dizibal-resolver";
 
 export const dynamic = "force-dynamic";
 
@@ -7,25 +8,31 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const title = searchParams.get("title") || "";
   const originalTitle = searchParams.get("originalTitle") || null;
+  const tmdbId = searchParams.get("tmdbId") ? Number(searchParams.get("tmdbId")) : undefined;
   const mediaType = searchParams.get("mediaType") || "tv";
   const isMovie = mediaType === "movie";
   const season = parseInt(searchParams.get("season") || "1", 10);
   const episode = parseInt(searchParams.get("episode") || "1", 10);
   const lang = (searchParams.get("lang") || "tr_dub") as "tr_dub" | "tr_sub" | "original";
 
-  const tmdbId = searchParams.get("tmdbId");
-
   let hdf = isMovie
     ? resolveHdfMovie(title, originalTitle)
     : resolveHdfSeriesEpisode(title, originalTitle, season, episode);
 
   if (!hdf || !hdf.m3u8Url) {
-    if (tmdbId) {
-      const fallbackUrl = isMovie
-        ? `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1${lang === "tr_dub" ? "&audio=tr" : "&sub=Turkish"}`
-        : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}${lang === "tr_dub" ? "&audio=tr" : "&sub=Turkish"}`;
-      return NextResponse.redirect(fallbackUrl, 302);
-    }
+    try {
+      const dizibal = await resolveDizibalSource({
+        title,
+        originalTitle,
+        tmdbId,
+        mediaType: isMovie ? "movie" : "tv",
+        season,
+        episode,
+      });
+      if (dizibal && dizibal.m3u8Url) {
+        return NextResponse.redirect(new URL(`/api/player/dizibal-embed?${searchParams.toString()}`, req.url));
+      }
+    } catch (e) {}
 
     return new NextResponse(
       `<!DOCTYPE html>

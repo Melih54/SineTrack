@@ -4,6 +4,8 @@ import { resolveHdfMovie } from "@/lib/hdfilmcehennemi-resolver";
 import { execFileSync } from "child_process";
 import { CURL_BIN } from "@/lib/curl";
 
+import { resolveDizibalSource } from "@/lib/dizibal-resolver";
+
 export const dynamic = "force-dynamic";
 
 const CHROME_UA =
@@ -59,29 +61,47 @@ export async function GET(req: Request) {
   // 2. MASTER PLAYLIST MODE
   const title = searchParams.get("title") || "";
   const originalTitle = searchParams.get("originalTitle") || null;
-  const mediaType = searchParams.get("mediaType") || "tv";
+  const tmdbId = searchParams.get("tmdbId") ? Number(searchParams.get("tmdbId")) : undefined;
+  const mediaType = (searchParams.get("mediaType") || "tv") as "movie" | "tv";
   const season = parseInt(searchParams.get("season") || "1", 10);
   const episode = parseInt(searchParams.get("episode") || "1", 10);
   const lang = (searchParams.get("lang") || "tr_dub") as "tr_dub" | "tr_sub" | "original";
   let streamUrl = searchParams.get("streamUrl");
 
   if (!streamUrl && title) {
-    if (mediaType === "movie") {
-      const hdfMovie = resolveHdfMovie(title, originalTitle);
-      if (hdfMovie && hdfMovie.m3u8Url) {
-        streamUrl = hdfMovie.m3u8Url;
-        referer = hdfMovie.referer || referer;
+    try {
+      const dizibal = await resolveDizibalSource({
+        title,
+        originalTitle,
+        tmdbId,
+        mediaType,
+        season,
+        episode,
+      });
+      if (dizibal && dizibal.m3u8Url) {
+        streamUrl = dizibal.m3u8Url;
+        referer = dizibal.referer || "https://dizibal.org/";
       }
-    } else {
-      const sources = resolveSeriesEpisode(title, originalTitle, season, episode);
-      const matched =
-        sources.find((s) => s.lang === lang && s.m3u8Url) ||
-        sources.find((s) => s.m3u8Url) ||
-        sources[0];
+    } catch (e) {}
 
-      if (matched && matched.m3u8Url) {
-        streamUrl = matched.m3u8Url;
-        referer = matched.referer || referer;
+    if (!streamUrl) {
+      if (mediaType === "movie") {
+        const hdfMovie = resolveHdfMovie(title, originalTitle);
+        if (hdfMovie && hdfMovie.m3u8Url) {
+          streamUrl = hdfMovie.m3u8Url;
+          referer = hdfMovie.referer || referer;
+        }
+      } else {
+        const sources = resolveSeriesEpisode(title, originalTitle, season, episode);
+        const matched =
+          sources.find((s) => s.lang === lang && s.m3u8Url) ||
+          sources.find((s) => s.m3u8Url) ||
+          sources[0];
+
+        if (matched && matched.m3u8Url) {
+          streamUrl = matched.m3u8Url;
+          referer = matched.referer || referer;
+        }
       }
     }
   }
