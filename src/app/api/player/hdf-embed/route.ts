@@ -80,6 +80,11 @@ export async function GET(req: Request) {
           <p><strong>${title} ${!isMovie ? `(${season}. Sezon ${episode}. Bölüm)` : ""}</strong> için kaynak kontrol ediliyor. Lütfen sayfayı yenileyin veya diğer sunuculardan birini deneyin.</p>
           <button onclick="location.reload()">Yeniden Dene</button>
         </div>
+        <script>
+          try {
+            window.parent.postMessage({ type: "STREAM_ERROR", source: "hdf-embed", reason: "NOT_FOUND" }, "*");
+          } catch(e) {}
+        </script>
       </body>
       </html>`,
       { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } }
@@ -185,7 +190,7 @@ export async function GET(req: Request) {
     @keyframes pulse {
       0%, 100% { transform: scale(1); opacity: 1; }
       50% { transform: scale(1.05); opacity: 0.9; }
-    }
+    }    /* Top Bar */
     #top-bar {
       position: absolute;
       top: 0;
@@ -199,12 +204,15 @@ export async function GET(req: Request) {
       z-index: 10;
       opacity: 0;
       transition: opacity 0.3s ease;
-      pointer-events: none;
+      pointer-events: none !important;
     }
-    #player-container:hover #top-bar,
-    #player-container:active #top-bar {
+    #player-container:hover #top-bar {
       opacity: 1;
-      pointer-events: auto;
+    }
+    @media (max-width: 640px) {
+      #top-bar {
+        padding-left: 64px !important;
+      }
     }
     .title-info {
       color: #fff;
@@ -214,6 +222,7 @@ export async function GET(req: Request) {
       align-items: center;
       gap: 6px;
       min-width: 0;
+      pointer-events: none;
     }
     .title-info span:last-child {
       white-space: nowrap;
@@ -241,6 +250,12 @@ export async function GET(req: Request) {
       border-radius: 4px;
       font-size: 10px;
       shrink: 0;
+    }
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      pointer-events: auto;
     }
     .lang-switcher {
       display: flex;
@@ -273,6 +288,24 @@ export async function GET(req: Request) {
       color: #fff;
       box-shadow: 0 2px 8px rgba(229, 9, 20, 0.4);
     }
+    .btn-fs {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 4px 9px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+    .btn-fs:hover {
+      background: rgba(255,255,255,0.3);
+    }
   </style>
 </head>
 <body>
@@ -292,9 +325,15 @@ export async function GET(req: Request) {
         <span class="source-badge">HDFilmCehennemi</span>
         <span>${title} ${!isMovie ? `• ${season}. Sezon ${episode}. Bölüm` : ""}</span>
       </div>
-      <div class="lang-switcher">
-        <button class="lang-btn ${lang === "tr_dub" ? "active" : ""}" id="btn-dub" onclick="switchLang('tr_dub')">🇹🇷 Dublaj</button>
-        <button class="lang-btn ${lang === "tr_sub" ? "active" : ""}" id="btn-sub" onclick="switchLang('tr_sub')">💬 Altyazı</button>
+      <div class="controls-right">
+        <div class="lang-switcher">
+          <button class="lang-btn ${lang === "tr_dub" ? "active" : ""}" id="btn-dub" onclick="switchLang('tr_dub')">🇹🇷 Dublaj</button>
+          <button class="lang-btn ${lang === "tr_sub" ? "active" : ""}" id="btn-sub" onclick="switchLang('tr_sub')">💬 Altyazı</button>
+        </div>
+        <button class="btn-fs" onclick="toggleFs()" title="Tam Ekran">
+          <span>⛶</span>
+          <span style="font-size:10px;">Tam Ekran</span>
+        </button>
       </div>
     </div>
 
@@ -311,6 +350,24 @@ export async function GET(req: Request) {
     const masterUrl = "${masterStreamUrl}";
     let hls = null;
     let isStarted = false;
+
+    function notify(type, extra) {
+      try {
+        window.parent.postMessage(Object.assign({ type: type, source: "hdf-embed" }, extra || {}), "*");
+      } catch(e) {}
+    }
+
+    function toggleFs() {
+      if (video.webkitEnterFullscreen) {
+        video.webkitEnterFullscreen();
+      } else if (video.requestFullscreen) {
+        video.requestFullscreen();
+      } else if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else if (video.webkitRequestFullscreen) {
+        video.webkitRequestFullscreen();
+      }
+    }
 
     function hideLoader() {
       if (loader) {
@@ -350,6 +407,7 @@ export async function GET(req: Request) {
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+          notify("STREAM_READY");
           video.play().then(hideLoader).catch(function() {
             showPlayHint();
             setTimeout(hideLoader, 2000);
@@ -383,6 +441,7 @@ export async function GET(req: Request) {
                 break;
               default:
                 console.error('HLS Fatal error:', data);
+                notify("STREAM_ERROR", { reason: data.type });
                 hls.destroy();
                 break;
             }
@@ -390,7 +449,10 @@ export async function GET(req: Request) {
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = sourceUrl;
-        video.addEventListener('loadedmetadata', hideLoader);
+        video.addEventListener('loadedmetadata', function() {
+          notify("STREAM_READY");
+          hideLoader();
+        });
         video.addEventListener('canplay', hideLoader);
         video.play().then(hideLoader).catch(function() {
           showPlayHint();
@@ -399,9 +461,15 @@ export async function GET(req: Request) {
       }
     }
 
-    video.addEventListener('playing', hideLoader);
+    video.addEventListener('playing', function() {
+      notify("STREAM_PLAYING");
+      hideLoader();
+    });
     video.addEventListener('play', hideLoader);
     video.addEventListener('canplay', hideLoader);
+    video.addEventListener('error', function(e) {
+      notify("STREAM_ERROR", { reason: "VIDEO_ELEMENT_ERROR" });
+    });
 
     setTimeout(hideLoader, 3500);
 

@@ -22,8 +22,13 @@ export async function GET(req: Request) {
       `<html><body style="background:#0b0c15;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
         <div>
           <h3>Atom Kaynağı Yüklenemedi</h3>
-          <p style="color:#aaa;font-size:13px;">Bu film için Atom sunucusunda kayıt bulunamadı. Lütfen üstteki diğer sunuculardan birini seçin.</p>
+          <p style="color:#aaa;font-size:13px;">Bu film için Atom sunucusunda kayıt bulunamadı. Lütfen diğer sunuculardan birini seçin.</p>
         </div>
+        <script>
+          try {
+            window.parent.postMessage({ type: "STREAM_ERROR", source: "atom-embed", reason: "NOT_FOUND" }, "*");
+          } catch(e) {}
+        </script>
       </body></html>`,
       { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
@@ -43,6 +48,27 @@ export async function GET(req: Request) {
       html = `<head><base href="${baseDomain}"></head>` + html;
     }
 
+    const injectScript = `<script>
+      try {
+        window.parent.postMessage({ type: "STREAM_READY", source: "atom-embed" }, "*");
+        var v = document.querySelector("video");
+        if (v) {
+          v.addEventListener("playing", function() {
+            window.parent.postMessage({ type: "STREAM_PLAYING", source: "atom-embed" }, "*");
+          });
+          v.addEventListener("error", function() {
+            window.parent.postMessage({ type: "STREAM_ERROR", source: "atom-embed", reason: "VIDEO_ERROR" }, "*");
+          });
+        }
+      } catch(e) {}
+    </script>`;
+
+    if (html.includes("</body>")) {
+      html = html.replace("</body>", `${injectScript}</body>`);
+    } else {
+      html += injectScript;
+    }
+
     return new NextResponse(html, {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
@@ -50,6 +76,19 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: any) {
-    return new NextResponse("Error fetching embed: " + error.message, { status: 500 });
+    return new NextResponse(
+      `<html><body style="background:#0b0c15;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
+        <div>
+          <h3 style="color:#ef4444;">Atom Bağlantı Hatası</h3>
+          <p style="color:#aaa;font-size:13px;">Kaynak yüklenirken hata oluştu.</p>
+        </div>
+        <script>
+          try {
+            window.parent.postMessage({ type: "STREAM_ERROR", source: "atom-embed", reason: "FETCH_ERROR" }, "*");
+          } catch(e) {}
+        </script>
+      </body></html>`,
+      { status: 500, headers: { "Content-Type": "text/html; charset=utf-8" } }
+    );
   }
 }

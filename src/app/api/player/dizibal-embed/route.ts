@@ -66,9 +66,14 @@ export async function GET(req: Request) {
           <p><strong>${displayTitle} ${mediaType === "tv" ? `(${season}. Sezon ${episode}. Bölüm)` : ""}</strong> için akış hazırlanıyor. Lütfen sayfayı yenileyin veya diğer sunuculardan birini seçin.</p>
           <button onclick="location.reload()">Yeniden Dene</button>
         </div>
+        <script>
+          try {
+            window.parent.postMessage({ type: "STREAM_ERROR", source: "dizibal-embed", reason: "NOT_FOUND" }, "*");
+          } catch(e) {}
+        </script>
       </body>
       </html>`,
-      { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
+      { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
   }
 
@@ -122,24 +127,97 @@ export async function GET(req: Request) {
       font-size: 14px; font-weight: bold; border-radius: 9999px; margin-top: 14px;
       box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
     }
-    .info-bar {
-      position: absolute; top: 12px; left: 12px; z-index: 15;
-      display: flex; align-items: center; gap: 8px; pointer-events: none;
+    /* Top Bar */
+    #top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 10px 14px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none !important;
+    }
+    #player-container:hover #top-bar {
+      opacity: 1;
+    }
+    @media (max-width: 640px) {
+      #top-bar {
+        padding-left: 64px !important;
+      }
+    }
+    .title-info {
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      pointer-events: none;
     }
     .badge {
-      font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 6px;
-      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.15); color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #f59e0b;
+      color: #000;
+      shrink: 0;
     }
-    .badge-provider { background: rgba(245, 158, 11, 0.85); color: #000; border: none; }
+    .badge-sub {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      shrink: 0;
+    }
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      pointer-events: auto;
+    }
+    .btn-fs {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 4px 9px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+    .btn-fs:hover {
+      background: rgba(255,255,255,0.3);
+    }
   </style>
 </head>
 <body>
   <div id="player-container">
-    <div class="info-bar">
-      <span class="badge badge-provider">🐝 DiziBal HLS HD</span>
-      <span class="badge">${mediaType === "tv" ? `S${season}:B${episode}` : "1080p"}</span>
-      <span class="badge" style="color:#10b981;">✓ Çift Ses & Altyazı</span>
+    <div id="top-bar">
+      <div class="title-info">
+        <span class="badge">🐝 DiziBal HD</span>
+        <span class="badge-sub">${mediaType === "tv" ? `S${season}:B${episode}` : "1080p"}</span>
+        <span style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">${displayTitle}</span>
+      </div>
+      <div class="controls-right">
+        <button class="btn-fs" onclick="toggleFs()" title="Tam Ekran">
+          <span>⛶</span>
+          <span style="font-size:10px;">Tam Ekran</span>
+        </button>
+      </div>
     </div>
 
     <div id="loader" onclick="startPlay()">
@@ -151,6 +229,7 @@ export async function GET(req: Request) {
     <video
       id="video"
       playsinline
+      webkit-playsinline
       controls
       crossorigin="anonymous"
       poster="https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1280&q=80"
@@ -164,6 +243,24 @@ export async function GET(req: Request) {
     const loader = document.getElementById('loader');
     const streamSource = "${proxiedMasterStream}";
     let started = false;
+
+    function notify(type, extra) {
+      try {
+        window.parent.postMessage(Object.assign({ type: type, source: "dizibal-embed" }, extra || {}), "*");
+      } catch(e) {}
+    }
+
+    function toggleFs() {
+      if (video.webkitEnterFullscreen) {
+        video.webkitEnterFullscreen();
+      } else if (video.requestFullscreen) {
+        video.requestFullscreen();
+      } else if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else if (video.webkitRequestFullscreen) {
+        video.webkitRequestFullscreen();
+      }
+    }
 
     function hideLoader() {
       if (loader) {
@@ -188,7 +285,7 @@ export async function GET(req: Request) {
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
-        // Automatically select Turkish audio track if available
+        notify("STREAM_READY");
         if (data.audioTracks && data.audioTracks.length > 0) {
           const trIndex = data.audioTracks.findIndex(t => /turk|türk|tr/i.test(t.name || t.lang));
           if (trIndex !== -1) {
@@ -209,6 +306,7 @@ export async function GET(req: Request) {
               hls.recoverMediaError();
               break;
             default:
+              notify("STREAM_ERROR", { reason: data.type });
               hls.destroy();
               break;
           }
@@ -218,13 +316,20 @@ export async function GET(req: Request) {
       // Safari / iOS Native HLS
       video.src = streamSource;
       video.addEventListener('loadedmetadata', function() {
+        notify("STREAM_READY");
         hideLoader();
         video.play().catch(() => {});
       });
     }
 
-    video.addEventListener('playing', hideLoader);
+    video.addEventListener('playing', function() {
+      notify("STREAM_PLAYING");
+      hideLoader();
+    });
     video.addEventListener('canplay', hideLoader);
+    video.addEventListener('error', function(e) {
+      notify("STREAM_ERROR", { reason: "VIDEO_ELEMENT_ERROR" });
+    });
   </script>
 </body>
 </html>`;

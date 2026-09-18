@@ -39,8 +39,13 @@ export async function GET(req: Request) {
       `<!DOCTYPE html><html><body style="background:#0b0c15;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
         <div>
           <h3 style="color:#ef4444;margin-bottom:8px;">TurboFilm Kaynağı Bulunamadı</h3>
-          <p style="color:#aaa;font-size:13px;">Bu içerik için TurboFilmizle sunucusunda kayıt bulunamadı. Lütfen oynatıcı menüsünden diğer Türk sunucularını seçin.</p>
+          <p style="color:#aaa;font-size:13px;">Bu içerik için TurboFilmizle sunucusunda kayıt bulunamadı. Lütfen diğer sunucuları seçin.</p>
         </div>
+        <script>
+          try {
+            window.parent.postMessage({ type: "STREAM_ERROR", source: "turbo-embed", reason: "NOT_FOUND" }, "*");
+          } catch(e) {}
+        </script>
       </body></html>`,
       { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
@@ -60,6 +65,27 @@ export async function GET(req: Request) {
       html = `<head><base href="${baseDomain}"></head>` + html;
     }
 
+    const injectScript = `<script>
+      try {
+        window.parent.postMessage({ type: "STREAM_READY", source: "turbo-embed" }, "*");
+        var v = document.querySelector("video");
+        if (v) {
+          v.addEventListener("playing", function() {
+            window.parent.postMessage({ type: "STREAM_PLAYING", source: "turbo-embed" }, "*");
+          });
+          v.addEventListener("error", function() {
+            window.parent.postMessage({ type: "STREAM_ERROR", source: "turbo-embed", reason: "VIDEO_ERROR" }, "*");
+          });
+        }
+      } catch(e) {}
+    </script>`;
+
+    if (html.includes("</body>")) {
+      html = html.replace("</body>", `${injectScript}</body>`);
+    } else {
+      html += injectScript;
+    }
+
     return new NextResponse(html, {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
@@ -71,8 +97,13 @@ export async function GET(req: Request) {
       `<!DOCTYPE html><html><body style="background:#0b0c15;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
         <div>
           <h3 style="color:#ef4444;margin-bottom:8px;">Bağlantı Hatası</h3>
-          <p style="color:#aaa;font-size:13px;">Kaynak yüklenirken zaman aşımı oluştu. Lütfen sayfayı yenileyin veya diğer sunucuları deneyin.</p>
+          <p style="color:#aaa;font-size:13px;">Kaynak yüklenirken zaman aşımı oluştu. Lütfen diğer sunucuları deneyin.</p>
         </div>
+        <script>
+          try {
+            window.parent.postMessage({ type: "STREAM_ERROR", source: "turbo-embed", reason: "TIMEOUT" }, "*");
+          } catch(e) {}
+        </script>
       </body></html>`,
       { status: 500, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
