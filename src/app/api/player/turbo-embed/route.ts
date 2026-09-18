@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { execSync } from "child_process";
 import { resolveTurboSource } from "@/lib/turbofilmizle-resolver";
 import { resolveDizibalSource } from "@/lib/dizibal-resolver";
-import { CURL_BIN } from "@/lib/curl";
+import { CURL_BIN, getBaseUrl } from "@/lib/curl";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
           mediaType: "movie",
         });
         if (dizibal && dizibal.m3u8Url) {
-          return NextResponse.redirect(new URL(`/api/player/dizibal-embed?${searchParams.toString()}`, req.url));
+          return NextResponse.redirect(new URL(`/api/player/dizibal-embed?${searchParams.toString()}`, getBaseUrl(req)));
         }
       } catch (e) {}
     }

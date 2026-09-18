@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveDizibalSource } from "@/lib/dizibal-resolver";
 import { resolveFullHDSource } from "@/lib/fullhd-resolver";
+import { getBaseUrl } from "@/lib/curl";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export async function GET(req: Request) {
   if (!m3u8Url && mediaType === "movie") {
     const atom = resolveFullHDSource(title, originalTitle);
     if (atom && atom.rapidvidUrl) {
-      return NextResponse.redirect(new URL(atom.embedUrl, req.url));
+      return NextResponse.redirect(new URL(atom.embedUrl, getBaseUrl(req)));
     }
   }
 

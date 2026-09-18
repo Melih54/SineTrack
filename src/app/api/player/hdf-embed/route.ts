@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveHdfSeriesEpisode, resolveHdfMovie } from "@/lib/hdfilmcehennemi-resolver";
 import { resolveDizibalSource } from "@/lib/dizibal-resolver";
+import { getBaseUrl } from "@/lib/curl";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
         episode,
       });
       if (dizibal && dizibal.m3u8Url) {
-        return NextResponse.redirect(new URL(`/api/player/dizibal-embed?${searchParams.toString()}`, req.url));
+        return NextResponse.redirect(new URL(`/api/player/dizibal-embed?${searchParams.toString()}`, getBaseUrl(req)));
       }
     } catch (e) {}
 

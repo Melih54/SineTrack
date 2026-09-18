@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { execSync } from "child_process";
 import { resolveFullHDSource } from "@/lib/fullhd-resolver";
-import { CURL_BIN } from "@/lib/curl";
+import { CURL_BIN, getBaseUrl } from "@/lib/curl";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -9,9 +9,7 @@ export async function GET(req: Request) {
   const title = searchParams.get("title");
   const originalTitle = searchParams.get("originalTitle");
 
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "sinetrack-production.up.railway.app";
-  const proto = req.headers.get("x-forwarded-proto") || "https";
-  const baseUrl = `${proto}://${host}`;
+  const baseUrl = getBaseUrl(req);
 
   // If no direct url provided, resolve by title
   if (!targetUrl && title) {
