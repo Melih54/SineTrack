@@ -15,11 +15,11 @@ interface DomainCacheEntry {
 
 const PROVIDER_SEEDS: Record<StreamProvider, string[]> = {
   hdfilmcehennemi: [
-    "https://www.hdfilmcehennemi.vip",
     "https://www.hdfilmcehennemi.nl",
-    "https://hdfilmcehennemi.net",
-    "https://hdfilmcehennemi.ws",
+    "https://hdfilmcehennemi.com",
     "https://hdfilmcehennemi.life",
+    "https://hdfilmcehennemi.cx",
+    "https://www.hdfilmcehennemi.net",
   ],
   dizilla: [
     "https://dizilla.now",
@@ -40,14 +40,14 @@ const PROVIDER_SEEDS: Record<StreamProvider, string[]> = {
 };
 
 const DEFAULT_DOMAINS: Record<StreamProvider, string> = {
-  hdfilmcehennemi: "https://www.hdfilmcehennemi.vip",
+  hdfilmcehennemi: "https://www.hdfilmcehennemi.nl",
   dizilla: "https://dizilla.now",
   fullhdfilmizlesene: "https://www.fullhdfilmizlesene.now",
   dizipal: "https://dizipalorjinal8.com",
 };
 
 const CACHE_FILE = path.join(process.cwd(), "data", "active-domains.json");
-const DOMAIN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const DOMAIN_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 // In-memory cache
 const memoryCache = new Map<StreamProvider, DomainCacheEntry>();

@@ -219,21 +219,6 @@ export function resolveSeriesEpisode(
             if (s2Json.state && s2Json.playlist?.[0]?.sources?.[0]?.file) {
               const m3u8Url = s2Json.playlist[0].sources[0].file.replace("m.php", "master.m3u8");
 
-              // Verify that m3u8Url actually returns a valid playlist before accepting
-              let isWorking = false;
-              try {
-                const probe = execFileSync(
-                  CURL_BIN,
-                  ["-s", "-L", "-A", CHROME_UA, "-H", `Referer: ${rawSrc}`, "--connect-timeout", "2", "-m", "3", m3u8Url],
-                  { timeout: 3500 }
-                ).toString("utf8");
-                isWorking = probe.includes("#EXTM3U");
-              } catch {}
-
-              if (!isWorking) {
-                continue; // Stream dead/blocked, try next source or fallback to HDFilmCehennemi
-              }
-
               results.push({
                 provider: "Dizilla",
                 lang: "tr_dub",
@@ -258,6 +243,7 @@ export function resolveSeriesEpisode(
                 subtitles: subs,
               });
 
+              // Bulunan ilk geçerli çalışan kaynağı kabul et ve döngüden çık
               break;
             }
           }
