@@ -93,7 +93,7 @@ export const EMBED_SERVERS: EmbedServer[] = [
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
         ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`
-        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}&lang=tr_sub`,
+        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&lang=tr_sub`,
   },
   {
     id: "hdf-player-sub",
@@ -103,7 +103,7 @@ export const EMBED_SERVERS: EmbedServer[] = [
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
         ? `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=movie&lang=tr_sub`
-        : `/api/player/hdf-embed?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}&mediaType=tv&lang=tr_sub`,
+        : `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&mediaType=tv&lang=tr_sub`,
   },
   {
     id: "vidlink-pro",
@@ -215,7 +215,7 @@ export const EMBED_SERVERS: EmbedServer[] = [
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
         ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`
-        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}&lang=tr_dub`,
+        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&lang=tr_dub`,
   },
   {
     id: "hdf-player-dub",
@@ -225,7 +225,7 @@ export const EMBED_SERVERS: EmbedServer[] = [
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
         ? `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=movie&lang=tr_dub`
-        : `/api/player/hdf-embed?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}&mediaType=tv&lang=tr_dub`,
+        : `/api/player/hdf-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&mediaType=tv&lang=tr_dub`,
   },
   {
     id: "dub-multiembed",
