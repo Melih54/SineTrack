@@ -103,15 +103,6 @@ export default function VideoPlayer({
   const [showSubGuide, setShowSubGuide] = useState(false);
   const playerContainerRef = useRef<HTMLDivElement>(null);
 
-  // Otomatik sunucu geçişi durumu ve referansları
-  const triedServersRef = useRef<Set<string>>(new Set());
-  const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const [autoSwitchEnabled, setAutoSwitchEnabled] = useState(true);
-  const [autoSwitchNotice, setAutoSwitchNotice] = useState<{
-    message: string;
-    type: "info" | "success" | "error";
-  } | null>(null);
-
   const handleNativeFullscreen = () => {
     if (!playerContainerRef.current) return;
     if (document.fullscreenElement) {
@@ -276,119 +267,6 @@ export default function VideoPlayer({
 
   // Akıllı URL çözümleyici (YouTube, Drive, MP4, iframe kodunu temizler)
   const { url: finalUrl, isDirectVideo } = parseSmartVideoUrl(rawUrlToPlay);
-
-  // Sunucu çalışmadığında sıradaki kaynağa otomatik geçiş yap
-  const switchNextServer = useCallback(
-    (reason?: string) => {
-      if (!autoSwitchEnabled || useManualUrl) return;
-
-      const currentId = activeServerId;
-      triedServersRef.current.add(currentId);
-
-      const availableList = availableServersForLanguage;
-      if (!availableList || availableList.length === 0) return;
-
-      const currentServerObj =
-        availableList.find((s) => s.id === currentId) || currentGeneralServer;
-
-      // Sıradaki denenmemiş sunucuyu bul
-      const nextServer = availableList.find((s) => !triedServersRef.current.has(s.id));
-
-      if (nextServer) {
-        const triedCount = triedServersRef.current.size;
-        const totalCount = availableList.length;
-        const fromName = currentServerObj.name.replace(/^[^\w\s]*\s*/, "");
-        const toName = nextServer.name.replace(/^[^\w\s]*\s*/, "");
-
-        setAutoSwitchNotice({
-          message: `⚡ ${fromName} açılmadı, otomatik olarak ${toName} deneniyor (${triedCount + 1}/${totalCount})...`,
-          type: "info",
-        });
-        setActiveCustomSourceId(null);
-        setActiveServerId(nextServer.id);
-        setReloadKey((k) => k + 1);
-      } else {
-        setAutoSwitchNotice({
-          message: `⚠️ Bu içerik için otomatik kontrol edilen kaynaklar (${availableList.length}/${availableList.length}) yanıt vermedi. Oynatıcı menüsünden sunucuları manuel deneyebilir veya 'Kendi Linkini Yapıştır' ile izleyebilirsiniz.`,
-          type: "error",
-        });
-      }
-    },
-    [autoSwitchEnabled, useManualUrl, activeServerId, availableServersForLanguage, currentGeneralServer]
-  );
-
-  // İçerik, sezon, bölüm veya dil değiştiğinde denenmiş sunucu listesini sıfırla
-  useEffect(() => {
-    triedServersRef.current.clear();
-    setAutoSwitchNotice(null);
-    if (watchdogTimerRef.current) {
-      clearTimeout(watchdogTimerRef.current);
-      watchdogTimerRef.current = null;
-    }
-  }, [mediaType, tmdbId, season, episode, selectedLanguage]);
-
-  // Oynatıcıdan gelen postMessage sinyallerini dinle (STREAM_READY, STREAM_PLAYING, STREAM_ERROR)
-  useEffect(() => {
-    const handleWindowMessage = (event: MessageEvent) => {
-      const data = event.data;
-      if (!data || typeof data !== "object") return;
-
-      if (data.type === "STREAM_PLAYING") {
-        if (watchdogTimerRef.current) {
-          clearTimeout(watchdogTimerRef.current);
-          watchdogTimerRef.current = null;
-        }
-        setAutoSwitchNotice((prev) => {
-          if (prev && prev.type === "info") {
-            return {
-              message: `✓ Video başarıyla açıldı (${currentGeneralServer.name})`,
-              type: "success",
-            };
-          }
-          return null;
-        });
-        setTimeout(() => {
-          setAutoSwitchNotice((prev) => (prev?.type === "success" ? null : prev));
-        }, 3000);
-      } else if (data.type === "STREAM_READY") {
-        if (watchdogTimerRef.current) {
-          clearTimeout(watchdogTimerRef.current);
-          watchdogTimerRef.current = null;
-        }
-      } else if (data.type === "STREAM_ERROR") {
-        console.warn("Player error event received:", data);
-        switchNextServer(data.reason);
-      }
-    };
-
-    window.addEventListener("message", handleWindowMessage);
-    return () => {
-      window.removeEventListener("message", handleWindowMessage);
-    };
-  }, [switchNextServer, currentGeneralServer.name]);
-
-  // Watchdog zamanlayıcısı: 10 saniye içinde ne hazır ne oynatma bildirimi gelmezse otomatik diğer kaynağa geç
-  useEffect(() => {
-    if (!autoSwitchEnabled || useManualUrl || isDirectVideo || !finalUrl) {
-      return;
-    }
-
-    if (watchdogTimerRef.current) {
-      clearTimeout(watchdogTimerRef.current);
-    }
-
-    watchdogTimerRef.current = setTimeout(() => {
-      console.log("Watchdog timer expired for server:", activeServerId);
-      switchNextServer("WATCHDOG_TIMEOUT");
-    }, 10000);
-
-    return () => {
-      if (watchdogTimerRef.current) {
-        clearTimeout(watchdogTimerRef.current);
-        watchdogTimerRef.current = null;
-      }
-    };
-  }, [activeServerId, reloadKey, autoSwitchEnabled, useManualUrl, isDirectVideo, finalUrl, switchNextServer]);
 
   const handleLanguageChange = (lang: "tr_dub" | "tr_sub" | "original") => {
     setSelectedLanguage(lang);
@@ -919,25 +797,6 @@ export default function VideoPlayer({
           {/* 2. SİNEMA SALONU ORTA SAHNESİ */}
           <div className="flex-1 min-h-0 w-full flex items-center justify-center p-2 sm:p-4 md:p-6 relative overflow-hidden">
             <div className="relative w-full max-w-6xl max-h-[calc(100vh-140px)] aspect-video rounded-2xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.95)] ring-2 ring-red-500/40 bg-black flex flex-col items-center justify-center">
-              {autoSwitchNotice && (
-                <div
-                  className={`w-full px-4 py-2 flex items-center justify-between text-xs font-semibold shrink-0 z-20 ${
-                    autoSwitchNotice.type === "success"
-                      ? "bg-emerald-950/90 text-emerald-300 border-b border-emerald-500/30"
-                      : autoSwitchNotice.type === "error"
-                      ? "bg-red-950/90 text-red-300 border-b border-red-500/30"
-                      : "bg-amber-950/90 text-amber-300 border-b border-amber-500/30"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${autoSwitchNotice.type === "info" ? "animate-spin" : ""}`} />
-                    <span className="truncate">{autoSwitchNotice.message}</span>
-                  </div>
-                  <button type="button" onClick={() => setAutoSwitchNotice(null)} className="cursor-pointer text-gray-400 hover:text-white ml-2">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
               {renderVideoContent(true)}
             </div>
           </div>
@@ -1100,38 +959,6 @@ export default function VideoPlayer({
         )}
       </div>
 
-      {/* Otomatik Kaynak Değişimi Bildirim Çubuğu */}
-      {autoSwitchNotice && (
-        <div
-          className={`px-4 py-2.5 flex items-center justify-between text-xs font-semibold animate-in slide-in-from-top duration-200 border-b ${
-            autoSwitchNotice.type === "success"
-              ? "bg-emerald-950/90 text-emerald-300 border-emerald-500/30"
-              : autoSwitchNotice.type === "error"
-              ? "bg-red-950/90 text-red-300 border-red-500/30"
-              : "bg-amber-950/90 text-amber-300 border-amber-500/30"
-          }`}
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            {autoSwitchNotice.type === "info" ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0 text-amber-400" />
-            ) : autoSwitchNotice.type === "success" ? (
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
-            ) : (
-              <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-400" />
-            )}
-            <span className="truncate">{autoSwitchNotice.message}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setAutoSwitchNotice(null)}
-            className="p-1 hover:bg-white/10 rounded-md text-gray-400 hover:text-white shrink-0 ml-2 cursor-pointer"
-            title="Kapat"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
       {/* Video Ekranı */}
       {renderVideoContent(false)}
 
@@ -1157,22 +984,6 @@ export default function VideoPlayer({
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Otomatik Geçiş Rozeti / Düğmesi */}
-            <button
-              type="button"
-              onClick={() => setAutoSwitchEnabled(!autoSwitchEnabled)}
-              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 border cursor-pointer ${
-                autoSwitchEnabled
-                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
-                  : "bg-white/5 text-gray-400 border-white/10 hover:text-white"
-              }`}
-              title="Bir kaynak açılmadığında sıradaki kaynağa otomatik geçiş yap"
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${autoSwitchEnabled ? "bg-emerald-400 animate-pulse" : "bg-gray-500"}`} />
-              <span className="hidden xs:inline">Oto Geçiş:</span>
-              <span>{autoSwitchEnabled ? "Açık" : "Kapalı"}</span>
-            </button>
-
             {/* Açılır / Kapanır Menü Butonu */}
             <button
               type="button"
@@ -1219,7 +1030,6 @@ export default function VideoPlayer({
                   onClick={() => {
                     setUseManualUrl(false);
                     setActiveCustomSourceId(source.id);
-                    setAutoSwitchNotice(null);
                     setReloadKey((k) => k + 1);
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -1247,7 +1057,6 @@ export default function VideoPlayer({
                     setUseManualUrl(false);
                     setActiveCustomSourceId(null);
                     setActiveServerId(server.id);
-                    setAutoSwitchNotice(null);
                     setReloadKey((k) => k + 1);
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
