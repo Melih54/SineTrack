@@ -14,9 +14,6 @@ export async function GET(req: Request) {
   const episode = parseInt(searchParams.get("episode") || "1", 10);
   const lang = (searchParams.get("lang") || "tr_dub") as "tr_dub" | "tr_sub" | "original";
 
-  const tmdbIdStr = searchParams.get("tmdbId");
-  const tmdbId = tmdbIdStr ? parseInt(tmdbIdStr, 10) : null;
-
   let matched: SeriesStreamSource | null = null;
 
   if (isMovie) {
@@ -40,44 +37,17 @@ export async function GET(req: Request) {
   }
 
   if (!matched || !matched.m3u8Url) {
+    const tmdbId = searchParams.get("tmdbId");
     if (tmdbId) {
-      const fallbackUrl = isMovie
-        ? (lang === "tr_dub"
+      const fallbackUrl =
+        lang === "tr_dub"
+          ? isMovie
             ? `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&audio=tr`
-            : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&sub=Turkish`)
-        : (lang === "tr_dub"
-            ? `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&audio=tr`
-            : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&sub=Turkish`);
-
-      return new NextResponse(
-        `<!DOCTYPE html>
-        <html lang="tr">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>
-            body { margin: 0; padding: 0; background: #000; width: 100vw; height: 100vh; overflow: hidden; }
-            iframe { width: 100%; height: 100%; border: 0; }
-            .badge {
-              position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-              background: rgba(15, 17, 26, 0.9); color: #38bdf8; font-size: 11px; font-weight: bold;
-              padding: 5px 14px; border-radius: 9999px; border: 1px solid rgba(56, 189, 248, 0.3);
-              z-index: 99; pointer-events: none; backdrop-filter: blur(8px);
-              display: flex; align-items: center; gap: 6px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            }
-            .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
-          </style>
-        </head>
-        <body>
-          <div class="badge">
-            <span class="dot"></span>
-            <span>Açık HD Sunucuya Bağlanıldı (${lang === "tr_dub" ? "Türkçe Ses" : "Türkçe Altyazı"})</span>
-          </div>
-          <iframe src="${fallbackUrl}" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"></iframe>
-        </body>
-        </html>`,
-        { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
-      );
+            : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&audio=tr`
+          : isMovie
+          ? `https://vidlink.pro/movie/${tmdbId}?primaryColor=e50914`
+          : `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}?primaryColor=e50914`;
+      return NextResponse.redirect(fallbackUrl);
     }
 
     return new NextResponse(
@@ -123,12 +93,12 @@ export async function GET(req: Request) {
       <body>
         <div class="box">
           <h3>Kaynak Hazırlanıyor</h3>
-          <p><strong>${title} ${!isMovie ? `(${season}. Sezon ${episode}. Bölüm)` : ""}</strong> için video kaynağı kontrol ediliyor. Lütfen yeniden deneyin veya aşağıdaki diğer sunuculardan birini seçin.</p>
+          <p><strong>${title} ${!isMovie ? `(${season}. Sezon ${episode}. Bölüm)` : ""}</strong> için video kaynağı kontrol ediliyor (Dizilla, HDFilmCehennemi, Dizipal). Lütfen yeniden deneyin veya oynatıcı menüsünden diğer sunuculardan birini seçin.</p>
           <button onclick="location.reload()">Yeniden Dene</button>
         </div>
       </body>
       </html>`,
-      { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
+      { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
   }
 

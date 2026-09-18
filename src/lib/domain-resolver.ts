@@ -15,11 +15,11 @@ interface DomainCacheEntry {
 
 const PROVIDER_SEEDS: Record<StreamProvider, string[]> = {
   hdfilmcehennemi: [
+    "https://www.hdfilmcehennemi.vip",
     "https://www.hdfilmcehennemi.nl",
-    "https://hdfilmcehennemi.com",
+    "https://hdfilmcehennemi.net",
+    "https://hdfilmcehennemi.ws",
     "https://hdfilmcehennemi.life",
-    "https://hdfilmcehennemi.cx",
-    "https://www.hdfilmcehennemi.net",
   ],
   dizilla: [
     "https://dizilla.now",
@@ -32,17 +32,18 @@ const PROVIDER_SEEDS: Record<StreamProvider, string[]> = {
     "https://fullhdfilmizlesene.cx",
   ],
   dizipal: [
+    "https://dizipalorjinal8.com",
+    "https://dizipal30.com",
     "https://dizipalguncel.co",
     "https://dizipal1581.com",
-    "https://dizipal30.com",
   ],
 };
 
 const DEFAULT_DOMAINS: Record<StreamProvider, string> = {
-  hdfilmcehennemi: "https://www.hdfilmcehennemi.nl",
+  hdfilmcehennemi: "https://www.hdfilmcehennemi.vip",
   dizilla: "https://dizilla.now",
   fullhdfilmizlesene: "https://www.fullhdfilmizlesene.now",
-  dizipal: "https://dizipal1581.com",
+  dizipal: "https://dizipalorjinal8.com",
 };
 
 const CACHE_FILE = path.join(process.cwd(), "data", "active-domains.json");

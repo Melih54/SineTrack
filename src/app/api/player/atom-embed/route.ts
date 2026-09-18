@@ -18,6 +18,11 @@ export async function GET(req: Request) {
   }
 
   if (!targetUrl) {
+    const tmdbId = searchParams.get("tmdbId");
+    if (tmdbId) {
+      return NextResponse.redirect(`https://vidlink.pro/movie/${tmdbId}?primaryColor=e50914`);
+    }
+
     return new NextResponse(
       `<html><body style="background:#0b0c15;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
         <div>
