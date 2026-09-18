@@ -1,0 +1,120 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String          @id @default(cuid())
+  username     String          @unique
+  email        String          @unique
+  passwordHash String
+  avatar       String?
+  isAdmin      Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  ratings      Rating[]
+  comments     Comment[]
+  watchlist    WatchlistItem[]
+  watchedItems WatchedItem[]
+}
+
+model Rating {
+  id         String   @id @default(cuid())
+  score      Int      // 1 to 10
+  mediaType  String   // "movie" | "tv"
+  tmdbId     Int
+  title      String?
+  posterPath String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, mediaType, tmdbId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  content    String
+  mediaType  String   // "movie" | "tv"
+  tmdbId     Int
+  seasonNum  Int?
+  episodeNum Int?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+}
+
+model WatchlistItem {
+  id          String   @id @default(cuid())
+  mediaType   String   // "movie" | "tv"
+  tmdbId      Int
+  title       String
+  posterPath  String?
+  voteAverage Float?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, mediaType, tmdbId])
+}
+
+model WatchedItem {
+  id           String   @id @default(cuid())
+  mediaType    String   // "movie" | "tv"
+  tmdbId       Int
+  title        String?
+  posterPath   String?
+  seasonNum    Int?
+  episodeNum   Int?
+  episodeTitle String?
+  watchedAt    DateTime @default(now())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mediaType, tmdbId, seasonNum, episodeNum])
+}
+
+// Film veya Dizi Bölümüne Özel Yayın / Dublaj / Altyazı Kaynakları
+model MediaSource {
+  id          String   @id @default(cuid())
+  mediaType   String   // "movie" | "tv"
+  tmdbId      Int
+  seasonNum   Int?     // Diziler için
+  episodeNum  Int?     // Diziler için
+  title       String?  // Film veya Dizi Başlığı
+  language    String   // "tr_dub" | "tr_sub" | "original"
+  sourceName  String   // "Özel Sunucu", "Google Drive", "Mixdrop", vb.
+  url         String   // Embed iframe veya doğrudan MP4/m3u8 URL'si
+  createdAt   DateTime @default(now())
+}
+
+// Sitemize Kayıtlı Kalıcı Film ve Diziler (CRUD için)
+model MediaItem {
+  id            String   @id @default(cuid())
+  tmdbId        Int?     @unique // Varsa TMDB ID
+  mediaType     String   // "movie" | "tv"
+  title         String   // Film / Dizi Başlığı
+  originalTitle String?  // Orijinal Başlık
+  overview      String   // Konu / Açıklama
+  posterPath    String   // Afiş Görsel URL
+  backdropPath  String?  // Arka Plan Görsel URL
+  releaseYear   String?  // 2024 vb.
+  voteAverage   Float    @default(0) // Puan (örn: 8.5)
+  voteCount     Int      @default(0)
+  genres        String   @default("Genel") // "Aksiyon, Dram, Bilim Kurgu"
+  duration      Int?     // Dakika
+  videoUrl      String?  // Ana video linki (Mixdrop, Drive, MP4, embed)
+  dubUrl        String?  // Özel Türkçe Dublaj linki
+  subUrl        String?  // Özel Türkçe Altyazı linki
+  isFeatured    Boolean  @default(false) // Anasayfa Hero'da öne çıkarılsın mı
+  seasonsCount  Int?     @default(1)
+  episodesCount Int?     @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
