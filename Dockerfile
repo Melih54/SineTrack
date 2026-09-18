@@ -5,7 +5,10 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat openssl python3 make g++
 WORKDIR /app
 
-# Install dependencies (npm install instead of npm ci for cross-platform compat)
+# Copy prisma schema FIRST (needed for postinstall prisma generate)
+COPY prisma ./prisma
+
+# Install dependencies
 COPY package.json package-lock.json* ./
 RUN npm install --legacy-peer-deps
 
