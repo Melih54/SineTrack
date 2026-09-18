@@ -13,11 +13,20 @@ export async function GET(req: Request) {
   const episode = parseInt(searchParams.get("episode") || "1", 10);
   const lang = (searchParams.get("lang") || "tr_dub") as "tr_dub" | "tr_sub" | "original";
 
+  const tmdbId = searchParams.get("tmdbId");
+
   let hdf = isMovie
     ? resolveHdfMovie(title, originalTitle)
     : resolveHdfSeriesEpisode(title, originalTitle, season, episode);
 
   if (!hdf || !hdf.m3u8Url) {
+    if (tmdbId) {
+      const fallbackUrl = isMovie
+        ? `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1${lang === "tr_dub" ? "&audio=tr" : "&sub=Turkish"}`
+        : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}${lang === "tr_dub" ? "&audio=tr" : "&sub=Turkish"}`;
+      return NextResponse.redirect(fallbackUrl, 302);
+    }
+
     return new NextResponse(
       `<!DOCTYPE html>
       <html lang="tr">

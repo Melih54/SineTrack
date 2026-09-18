@@ -171,6 +171,9 @@ export function resolveSeriesEpisode(
         decrypted.RelatedResults?.getEpisodeSources?.result ||
         [];
 
+      let fallbackRawSrc: string | null = null;
+      let fallbackSubs: Array<{ file: string; label: string; lang: string }> = [];
+
       for (const s of sources) {
         const srcMatch = (s.source_content || "").match(/src="([^"]+)"/);
         if (!srcMatch) continue;
@@ -178,6 +181,10 @@ export function resolveSeriesEpisode(
         let rawSrc = srcMatch[1].startsWith("//") ? "https:" + srcMatch[1] : srcMatch[1];
         if (rawSrc.includes("dplayer74.site")) {
           rawSrc = rawSrc.replace("dplayer74.site", "dplayer82.site");
+        }
+
+        if (!fallbackRawSrc && rawSrc) {
+          fallbackRawSrc = rawSrc;
         }
 
         try {
@@ -204,6 +211,7 @@ export function resolveSeriesEpisode(
 
           const plMatch = pHtml.match(/window\.openPlayer\(\s*'([^']+)'/);
           const subs = extractSubtitles(pHtml);
+          if (subs.length > 0) fallbackSubs = subs;
 
           if (plMatch) {
             const host = new URL(rawSrc).host;
@@ -271,6 +279,30 @@ export function resolveSeriesEpisode(
             }
           }
         } catch {}
+      }
+
+      if (results.length === 0 && fallbackRawSrc) {
+        results.push({
+          provider: "Dizilla",
+          lang: "tr_dub",
+          label: "Dizilla Player (Türkçe Dublaj)",
+          quality: "1080P",
+          rawIframeSrc: fallbackRawSrc,
+          referer: fallbackRawSrc,
+          embedUrl: `/api/player/dizi-embed?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}&lang=tr_dub`,
+          subtitles: fallbackSubs,
+        });
+
+        results.push({
+          provider: "Dizilla",
+          lang: "tr_sub",
+          label: "Dizilla Player (Türkçe Altyazılı)",
+          quality: "1080P",
+          rawIframeSrc: fallbackRawSrc,
+          referer: fallbackRawSrc,
+          embedUrl: `/api/player/dizi-embed?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}&lang=tr_sub`,
+          subtitles: fallbackSubs,
+        });
       }
 
       if (results.length > 0) break;

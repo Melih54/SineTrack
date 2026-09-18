@@ -36,7 +36,14 @@ export async function GET(req: Request) {
     matched = sources.find((s) => s.lang === lang) || sources[0] || null;
   }
 
-  if (!matched || !matched.m3u8Url) {
+  const tmdbId = searchParams.get("tmdbId");
+
+  if (!matched || (!matched.m3u8Url && !matched.rawIframeSrc)) {
+    if (tmdbId) {
+      const fallbackUrl = `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}${lang === "tr_dub" ? "&audio=tr" : "&sub=Turkish"}`;
+      return NextResponse.redirect(fallbackUrl, 302);
+    }
+
     return new NextResponse(
       `<!DOCTYPE html>
       <html lang="tr">
@@ -80,12 +87,35 @@ export async function GET(req: Request) {
       <body>
         <div class="box">
           <h3>Kaynak Hazırlanıyor</h3>
-          <p><strong>${title} ${!isMovie ? `(${season}. Sezon ${episode}. Bölüm)` : ""}</strong> için video kaynağı kontrol ediliyor (Dizilla, HDFilmCehennemi, Dizipal). Lütfen yeniden deneyin veya oynatıcı menüsünden diğer sunuculardan birini seçin.</p>
+          <p><strong>${title} ${!isMovie ? `(${season}. Sezon ${episode}. Bölüm)` : ""}</strong> için video kaynağı kontrol ediliyor. Lütfen yeniden deneyin veya oynatıcı menüsünden diğer sunuculardan birini seçin.</p>
           <button onclick="location.reload()">Yeniden Dene</button>
         </div>
       </body>
       </html>`,
       { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } }
+    );
+  }
+
+  // If rawIframeSrc is available but no direct m3u8Url, render clean iframe player
+  if (!matched.m3u8Url && matched.rawIframeSrc) {
+    return new NextResponse(
+      `<!DOCTYPE html>
+      <html lang="tr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>${title} - ${season}. Sezon ${episode}. Bölüm</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+          iframe { width: 100%; height: 100%; border: none; }
+        </style>
+      </head>
+      <body>
+        <iframe src="${matched.rawIframeSrc}" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; encrypted-media; fullscreen"></iframe>
+      </body>
+      </html>`,
+      { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
   }
 

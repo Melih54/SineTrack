@@ -11,6 +11,8 @@ export async function GET(req: Request) {
   const title = searchParams.get("title");
   const originalTitle = searchParams.get("originalTitle");
 
+  const tmdbId = searchParams.get("tmdbId");
+
   if (!targetUrl && title) {
     const resolved = resolveTurboSource(title, originalTitle);
     if (resolved) {
@@ -19,6 +21,9 @@ export async function GET(req: Request) {
   }
 
   if (!targetUrl) {
+    if (tmdbId) {
+      return NextResponse.redirect(`https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&sub=Turkish`, 302);
+    }
     return new NextResponse(
       `<!DOCTYPE html><html><body style="background:#0b0c15;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;">
         <div>

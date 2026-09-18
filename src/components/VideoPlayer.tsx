@@ -213,12 +213,21 @@ export default function VideoPlayer({
     loadSources();
   }, [mediaType, tmdbId, season, episode]);
 
-  // Seçili dile ait genel sunucular
-  const availableServersForLanguage = EMBED_SERVERS.filter((s) => s.language === selectedLanguage);
+  // Seçili dile ve medya türüne ait genel sunucular
+  const availableServersForLanguage = EMBED_SERVERS.filter(
+    (s) =>
+      s.language === selectedLanguage &&
+      (!s.supportedMediaTypes || s.supportedMediaTypes.includes(mediaType))
+  );
   const availableCustomSources = customSources.filter((s) => s.language === selectedLanguage);
 
   const currentGeneralServer =
-    EMBED_SERVERS.find((s) => s.id === activeServerId && s.language === selectedLanguage) ||
+    EMBED_SERVERS.find(
+      (s) =>
+        s.id === activeServerId &&
+        s.language === selectedLanguage &&
+        (!s.supportedMediaTypes || s.supportedMediaTypes.includes(mediaType))
+    ) ||
     availableServersForLanguage[0] ||
     EMBED_SERVERS[0];
 
@@ -277,7 +286,11 @@ export default function VideoPlayer({
       setActiveCustomSourceId(customForLang[0].id);
     } else {
       setActiveCustomSourceId(null);
-      const server = EMBED_SERVERS.find((s) => s.language === lang);
+      const server = EMBED_SERVERS.find(
+        (s) =>
+          s.language === lang &&
+          (!s.supportedMediaTypes || s.supportedMediaTypes.includes(mediaType))
+      );
       if (server) setActiveServerId(server.id);
     }
     setReloadKey((k) => k + 1);
@@ -1074,6 +1087,47 @@ export default function VideoPlayer({
               <LinkIcon className="w-3.5 h-3.5" />
               <span>Kendi Linkini Yapıştır</span>
             </button>
+
+            {/* Harici Türkçe Sitelerde Ara (Yeni Sekme) */}
+            <div className="w-full pt-2.5 mt-1 border-t border-white/5 flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-[11px] font-bold text-gray-400">Harici Sitelerde Ara (Yeni Sekme):</span>
+              <a
+                href={`https://www.hdfilmizle.vip/?s=${encodeURIComponent(title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all flex items-center gap-1 text-[11px] font-medium cursor-pointer"
+              >
+                <span>🎬 HDFilmizle.vip</span>
+                <ExternalLink className="w-3 h-3 text-amber-400" />
+              </a>
+              <a
+                href={`https://dizibal.org/?s=${encodeURIComponent(title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all flex items-center gap-1 text-[11px] font-medium cursor-pointer"
+              >
+                <span>🐝 DiziBal</span>
+                <ExternalLink className="w-3 h-3 text-amber-400" />
+              </a>
+              <a
+                href={`https://turbofilmizle.org/?s=${encodeURIComponent(title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all flex items-center gap-1 text-[11px] font-medium cursor-pointer"
+              >
+                <span>🚀 TurboFilmizle</span>
+                <ExternalLink className="w-3 h-3 text-amber-400" />
+              </a>
+              <a
+                href={`https://www.hdfilmcehennemi.nl/search?q=${encodeURIComponent(title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all flex items-center gap-1 text-[11px] font-medium cursor-pointer"
+              >
+                <span>🔥 HDFilmCehennemi</span>
+                <ExternalLink className="w-3 h-3 text-amber-400" />
+              </a>
+            </div>
           </div>
         )}
       </div>
