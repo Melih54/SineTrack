@@ -84,11 +84,9 @@ export async function POST(req: Request) {
           dubUrl = atom.embedUrl;
           subUrl = atom.embedUrl;
         } else {
-          videoUrl = `https://vidlink.pro/movie/${tmdbId}?primaryColor=e50914`;
-          subUrl = `https://player.videasy.net/movie/${tmdbId}`;
-          dubUrl = isTurkish
-            ? `https://vidlink.pro/movie/${tmdbId}?primaryColor=e50914`
-            : `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&audio=tr`;
+          videoUrl = `/api/player/hdf-embed?title=${encodeURIComponent(title)}&year=${releaseYear || ""}`;
+          dubUrl = `/api/player/hdf-embed?title=${encodeURIComponent(title)}&year=${releaseYear || ""}&lang=tr_dub`;
+          subUrl = `/api/player/hdf-embed?title=${encodeURIComponent(title)}&year=${releaseYear || ""}&lang=tr_sub`;
         }
       }
 

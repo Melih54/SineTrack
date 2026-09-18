@@ -553,30 +553,30 @@ export default function VideoPlayer({
                 <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-1">
                   <div className="flex items-center gap-1.5 text-white font-bold">
                     <span className="w-2 h-2 rounded-full bg-red-500" />
-                    <span>Sunucu 1 (VidLink Pro)</span>
+                    <span>🚀 TurboFilmizle & HDFilmCehennemi</span>
                   </div>
                   <p className="text-gray-300 text-[11px] pl-3.5">
-                    Video oynarken sağ alt köşedeki <strong className="text-amber-300 bg-white/10 px-1.5 py-0.5 rounded font-mono">[CC]</strong> butonuna tıklayın ve listeden <strong className="text-emerald-400">Turkish (Türkçe)</strong> seçin.
+                    Türkçe dublaj ve altyazılı filmler için yüksek hızlı ve reklamsız HotStream/Rapid vid oynatıcıları sunar.
                   </p>
                 </div>
 
                 <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-1">
                   <div className="flex items-center gap-1.5 text-white font-bold">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span>Sunucu 2 (Videasy)</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>⚡ Dizipal & Dizilla (Atom)</span>
                   </div>
                   <p className="text-gray-300 text-[11px] pl-3.5">
-                    Video oynarken sağ alttaki <strong className="text-amber-300 bg-white/10 px-1.5 py-0.5 rounded font-mono">⚙️ Ayarlar</strong> simgesine tıklayın → <strong className="text-emerald-400">Altyazı (Subtitles)</strong> → <strong className="text-emerald-400">Türkçe</strong> seçeneğini aktif edin.
+                    Diziler ve filmler için doğrudan yerli HLS / m3u8 akışlarını çeker.
                   </p>
                 </div>
 
                 <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-1">
                   <div className="flex items-center gap-1.5 text-white font-bold">
                     <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    <span>Türkçe Dublaj İsterseniz</span>
+                    <span>Türkçe Dublaj & Altyazı Değişimi</span>
                   </div>
                   <p className="text-gray-300 text-[11px] pl-3.5">
-                    Oynatıcının üstündeki <strong className="text-amber-300">🇹🇷 Türkçe Dublaj</strong> butonuna tıklayarak dublajlı yayın kaynaklarına geçiş yapabilirsiniz.
+                    Oynatıcının hemen üstündeki <strong className="text-amber-300">🇹🇷 Dublaj</strong> veya <strong className="text-red-400">💬 Altyazı</strong> butonlarına basarak anında kaynaklar arasında geçiş yapabilirsiniz.
                   </p>
                 </div>
               </div>
