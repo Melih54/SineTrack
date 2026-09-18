@@ -9,6 +9,10 @@ export async function GET(req: Request) {
   const title = searchParams.get("title");
   const originalTitle = searchParams.get("originalTitle");
 
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "sinetrack-production.up.railway.app";
+  const proto = req.headers.get("x-forwarded-proto") || "https";
+  const baseUrl = `${proto}://${host}`;
+
   // If no direct url provided, resolve by title
   if (!targetUrl && title) {
     const resolved = resolveFullHDSource(title, originalTitle);
@@ -20,8 +24,7 @@ export async function GET(req: Request) {
   if (!targetUrl) {
     if (title) {
       // Fallback seamlessly to dizibal-embed!
-      const fallbackUrl = `/api/player/dizibal-embed?${searchParams.toString()}`;
-      return NextResponse.redirect(new URL(fallbackUrl, req.url));
+      return NextResponse.redirect(new URL(`/api/player/dizibal-embed?${searchParams.toString()}`, baseUrl));
     }
 
     return new NextResponse(
@@ -83,8 +86,7 @@ export async function GET(req: Request) {
     });
   } catch (error: any) {
     if (title) {
-      const fallbackUrl = `/api/player/dizibal-embed?${searchParams.toString()}`;
-      return NextResponse.redirect(new URL(fallbackUrl, req.url));
+      return NextResponse.redirect(new URL(`/api/player/dizibal-embed?${searchParams.toString()}`, baseUrl));
     }
 
     return new NextResponse(
