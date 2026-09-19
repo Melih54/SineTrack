@@ -146,7 +146,10 @@ export function resolveFullHDSource(
   }
 
   const queries = getFullHDSearchQueries(title, originalTitle);
-  const baseDomain = getWorkingDomain("fullhdfilmizlesene");
+  let baseDomain = getWorkingDomain("fullhdfilmizlesene");
+  if (!baseDomain || baseDomain.includes(".cx")) {
+    baseDomain = "https://www.fullhdfilmizlesene.now";
+  }
 
   // 1. PRIMARY: Try FullHDFilmizlesene Atom Player
   for (const q of queries) {
@@ -159,6 +162,10 @@ export function resolveFullHDSource(
           "-L",
           "-A",
           CHROME_UA,
+          "-H",
+          "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+          "-H",
+          "Accept-Language: tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
           "--connect-timeout",
           "8",
           "-m",
@@ -187,6 +194,10 @@ export function resolveFullHDSource(
             CHROME_UA,
             "-H",
             `Referer: ${baseDomain}/`,
+            "-H",
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "-H",
+            "Accept-Language: tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
             "--connect-timeout",
             "8",
             "-m",

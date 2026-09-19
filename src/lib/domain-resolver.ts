@@ -29,7 +29,6 @@ const PROVIDER_SEEDS: Record<StreamProvider, string[]> = {
   fullhdfilmizlesene: [
     "https://www.fullhdfilmizlesene.now",
     "https://fullhdfilmizlesene.pw",
-    "https://fullhdfilmizlesene.cx",
   ],
   dizipal: [
     "https://dizipalguncel.co",
@@ -84,6 +83,8 @@ function probeUrl(url: string, timeoutSec: number = 9): string | null {
         "-w", "%{http_code}|%{url_effective}",
         "-L",
         "-A", CHROME_UA,
+        "-H", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "-H", "Accept-Language: tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
         "--connect-timeout", "6",
         "-m", String(timeoutSec),
         url,
