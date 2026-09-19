@@ -26,7 +26,7 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
     subtitles = [],
     referer,
     provider,
-    badge = "HD 1080p",
+    badge = "HD",
     themeColor = "#e50914",
   } = opts;
 
@@ -34,12 +34,16 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
     ? `${title} - ${season}. Sezon ${episode}. Bölüm`
     : title;
 
+  // Subtitle should ONLY be enabled by default if user selected "tr_sub" (Altyazılı).
+  // In "tr_dub" (Dublaj) or "original" mode, subtitle is OFF by default.
+  const isSubLanguage = (lang === "tr_sub");
+
   const subtitleTracks = subtitles.map((sub) => {
     const absFile = sub.file.startsWith("http")
       ? sub.file
       : new URL(sub.file, referer).href;
     const subProxyUrl = `/api/player/stream-proxy?ref=${encodeURIComponent(referer)}&url=${encodeURIComponent(absFile)}`;
-    const isDefault = sub.lang === "tr" && lang !== "original";
+    const isDefault = isSubLanguage && (sub.lang === "tr" || subtitles.length === 1);
     return {
       name: sub.label || (sub.lang === "tr" ? "Türkçe" : sub.lang.toUpperCase()),
       lang: sub.lang,
@@ -48,8 +52,9 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
     };
   });
 
-  const defaultSub = subtitleTracks.find((s) => s.isDefault) ||
-    (subtitleTracks.length > 0 && lang !== "tr_dub" ? subtitleTracks[0] : null);
+  const defaultSub = isSubLanguage
+    ? (subtitleTracks.find((s) => s.isDefault) || (subtitleTracks.length > 0 ? subtitleTracks[0] : null))
+    : null;
 
   const storageKey = `sinetrack_resume_${mediaType}_${tmdbId || encodeURIComponent(title)}_${season}_${episode}`;
 
@@ -162,7 +167,7 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
     }
     /* Artplayer Custom UI Overrides */
     .art-notice {
-      background: rgba(12, 14, 24, 0.88) !important;
+      background: rgba(12, 14, 24, 0.9) !important;
       border: 1px solid rgba(255, 255, 255, 0.15) !important;
       backdrop-filter: blur(12px) !important;
       border-radius: 10px !important;
@@ -172,8 +177,9 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
       padding: 10px 18px !important;
     }
     .art-subtitle {
-      text-shadow: 0 2px 4px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.9) !important;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.9) !important;
       font-weight: 700 !important;
+      margin-bottom: 24px !important;
     }
     .art-btn-next {
       display: inline-flex;
@@ -200,7 +206,7 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
     <div id="top-bar">
       <div class="title-info">
         <span class="badge-prov">${badge}</span>
-        <span class="badge-sub">${mediaType === "tv" ? `S${season}:B${episode}` : "1080p"}</span>
+        <span class="badge-sub" id="top-res">${mediaType === "tv" ? `S${season}:B${episode}` : "HD"}</span>
         <span class="title-text">${title}</span>
       </div>
       <div class="controls-right">
@@ -226,6 +232,20 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
       try {
         window.parent.postMessage(Object.assign({ type: type, source: "${provider}" }, extra || {}), "*");
       } catch(e) {}
+    }
+
+    // Standardized resolution formatter (handles 2.35:1 widescreen formats like 1280x544 -> 720P HD)
+    function formatResolution(level) {
+      if (!level) return 'HD';
+      const w = level.width || 0;
+      const h = level.height || 0;
+      if (w >= 3800 || h >= 2000) return '4K UHD';
+      if (w >= 2500 || h >= 1400) return '2K QHD';
+      if (w >= 1800 || h >= 800) return '1080P Full HD';
+      if (w >= 1200 || h >= 500) return '720P HD';
+      if (w >= 800 || h >= 400) return '480P';
+      if (w >= 600 || h >= 300) return '360P';
+      return h ? h + 'P' : (level.name || 'HD');
     }
 
     // Resume position resolver
@@ -310,9 +330,7 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
             setting: true,
             title: 'Kalite',
             auto: 'Otomatik',
-            getName: function(level) {
-              return level.height ? level.height + 'P' : (level.name || 'HD');
-            },
+            getName: formatResolution,
           },
           audio: {
             control: true,
@@ -353,9 +371,17 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
 
             hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
               notify("STREAM_READY");
+
+              // Update top-bar badge with actual detected stream resolution
+              const topRes = document.getElementById('top-res');
+              if (topRes && mediaType !== 'tv' && hls.levels && hls.levels.length > 0) {
+                const bestLevel = hls.levels.reduce((prev, curr) => ((curr.width || 0) > (prev.width || 0) ? curr : prev), hls.levels[0]);
+                topRes.textContent = formatResolution(bestLevel);
+              }
+
               // Check audio tracks
               if (hls.audioTracks && hls.audioTracks.length > 0) {
-                const isDub = currentLang === "tr_dub";
+                const isDub = (currentLang === "tr_dub");
                 const trIndex = hls.audioTracks.findIndex(t => /turk|türk|tr/i.test(t.name || t.lang));
                 const origIndex = hls.audioTracks.findIndex(t => !/turk|türk|tr/i.test(t.name || t.lang));
                 if (isDub && trIndex !== -1) {
@@ -403,9 +429,10 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
         type: 'vtt',
         style: {
           color: '#ffffff',
-          fontSize: '22px',
+          fontSize: '20px',
           textShadow: '0 2px 4px #000, 0 0 2px #000',
           fontWeight: '700',
+          marginBottom: '24px',
         },
         encoding: 'utf-8',
       } : undefined,
@@ -455,7 +482,7 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
     // Subtitles selector in control bar if subtitles exist
     if (subtitleTracks.length > 0) {
       const subSelector = [
-        { html: 'Altyazı Kapat', value: '' },
+        { html: 'Altyazı Kapat', value: '', default: !defaultSub },
         ...subtitleTracks.map(s => ({
           html: s.name,
           value: s.url,
@@ -482,23 +509,14 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
           return item.html;
         }
       });
-
-      // Also append native <track> to video for iOS native fullscreen
-      try {
-        subtitleTracks.forEach(s => {
-          const track = document.createElement('track');
-          track.kind = 'subtitles';
-          track.label = s.name;
-          track.srclang = s.lang;
-          track.src = s.url;
-          if (defaultSub && s.url === defaultSub.url) track.default = true;
-          art.video.appendChild(track);
-        });
-      } catch(e) {}
     }
 
     // Event Listeners
     art.on('ready', function() {
+      // If not in subtitle mode, ensure subtitle is hidden
+      if (!defaultSub && art.subtitle) {
+        art.subtitle.show = false;
+      }
       attemptResume(art);
     });
 
@@ -538,8 +556,25 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
       if (e.data && e.data.type === 'CHANGE_LANGUAGE') {
         const newLang = e.data.lang;
         currentLang = newLang;
+        const isDub = (newLang === "tr_dub");
+
+        // Altyazı durumunu senkronize et
+        if (art && art.subtitle) {
+          if (isDub) {
+            art.subtitle.show = false;
+            art.notice.show = 'Dublaj Modu: Altyazı Kapatıldı';
+          } else if (subtitleTracks.length > 0) {
+            const trSub = subtitleTracks.find(s => s.lang === 'tr') || subtitleTracks[0];
+            if (trSub) {
+              art.subtitle.switch(trSub.url, { name: trSub.name });
+              art.subtitle.show = true;
+              art.notice.show = 'Altyazı: ' + trSub.name;
+            }
+          }
+        }
+
+        // Ses kanalını senkronize et
         if (art && art.hls && art.hls.audioTracks && art.hls.audioTracks.length > 1) {
-          const isDub = newLang === "tr_dub";
           const trIndex = art.hls.audioTracks.findIndex(t => /turk|türk|tr/i.test(t.name || t.lang));
           const origIndex = art.hls.audioTracks.findIndex(t => !/turk|türk|tr/i.test(t.name || t.lang));
           if (isDub && trIndex !== -1) {
@@ -552,6 +587,7 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
             return;
           }
         }
+
         // Fallback: If not dual-audio or cannot switch live, reload with ?t=
         const url = new URL(window.location.href);
         url.searchParams.set('lang', newLang);
