@@ -1,7 +1,10 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { getWorkingDomain } from "./domain-resolver";
 import { resolveHdfMovie } from "./hdfilmcehennemi-resolver";
 import { CURL_BIN } from "./curl";
+
+const CHROME_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 export function rtt(e: string): string {
   return (e + "").replace(/[a-z]/gi, function (c) {
@@ -31,8 +34,24 @@ export function extractRapidvidDirectM3u8(
   referer = "https://www.fullhdfilmizlesene.now/"
 ): string | null {
   try {
-    const rapidCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -H "Referer: ${referer}" "${rapidvidUrl}"`;
-    const rHtml = execSync(rapidCmd, { timeout: 15000 }).toString("utf8");
+    const rHtml = execFileSync(
+      CURL_BIN,
+      [
+        "-s",
+        "-L",
+        "-A",
+        CHROME_UA,
+        "-H",
+        `Referer: ${referer}`,
+        "--connect-timeout",
+        "8",
+        "-m",
+        "14",
+        rapidvidUrl,
+      ],
+      { timeout: 15000 }
+    ).toString("utf8");
+
     const m = rHtml.match(/["']file["']\s*:\s*av\(\s*['"]([^'"]+)['"]\s*\)/);
     if (m && m[1]) {
       const decrypted = decryptRapidvid(m[1]);
@@ -61,7 +80,7 @@ export function getFullHDSearchQueries(title: string, originalTitle?: string | n
   const mapping: Record<string, string[]> = {
     "endgame": ["yenilmezler son oyun", "yenilmezler 4 son oyun", "yenilmezler 4"],
     "infinity war": ["yenilmezler sonsuzluk savasi", "yenilmezler 3 sonsuzluk savasi", "yenilmezler 3"],
-    "avengers": ["yenilmezler", "yenilmezler 1", "yenilmezler 2"],
+    "avengers": ["yenilmezler son oyun", "yenilmezler", "yenilmezler 1", "yenilmezler 2"],
     "star wars": ["yildiz savaslari"],
     "lord of the rings": ["yuzuklerin efendisi"],
     "spider-man": ["orumcek adam"],
@@ -133,8 +152,21 @@ export function resolveFullHDSource(
   for (const q of queries) {
     try {
       const searchUrl = `${baseDomain}/arama/${encodeURIComponent(q.trim())}`;
-      const curlCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" --connect-timeout 8 -m 14 "${searchUrl}"`;
-      const html = execSync(curlCmd, { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }).toString("utf8");
+      const html = execFileSync(
+        CURL_BIN,
+        [
+          "-s",
+          "-L",
+          "-A",
+          CHROME_UA,
+          "--connect-timeout",
+          "8",
+          "-m",
+          "14",
+          searchUrl,
+        ],
+        { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
+      ).toString("utf8");
 
       const matches = html.match(/href="https?:\/\/[^"]*\/film\/([^"]+)\/"/g);
       if (!matches || matches.length === 0) continue;
@@ -146,8 +178,23 @@ export function resolveFullHDSource(
         const slug = slugMatch[1];
 
         const filmUrl = `${baseDomain}/film/${slug}/`;
-        const filmCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -H "Referer: ${baseDomain}/" --connect-timeout 8 -m 14 "${filmUrl}"`;
-        const filmHtml = execSync(filmCmd, { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }).toString("utf8");
+        const filmHtml = execFileSync(
+          CURL_BIN,
+          [
+            "-s",
+            "-L",
+            "-A",
+            CHROME_UA,
+            "-H",
+            `Referer: ${baseDomain}/`,
+            "--connect-timeout",
+            "8",
+            "-m",
+            "14",
+            filmUrl,
+          ],
+          { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
+        ).toString("utf8");
 
         const scxMatch =
           filmHtml.match(/var\s+scx\s*=\s*({[\s\S]*?});\s*<\/script>/) ||

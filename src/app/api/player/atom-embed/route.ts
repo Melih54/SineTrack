@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { resolveFullHDSource, extractRapidvidDirectM3u8 } from "@/lib/fullhd-resolver";
 import { resolveDizibalSource } from "@/lib/dizibal-resolver";
 import { renderArtplayerHtml } from "@/lib/artplayer-template";
@@ -80,8 +80,23 @@ export async function GET(req: Request) {
   // 4. Fallback: If no direct stream was extracted but targetUrl exists, proxy Rapidvid HTML
   if (targetUrl) {
     try {
-      const curlCmd = `${CURL_BIN} -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -H "Referer: https://www.fullhdfilmizlesene.now/" "${targetUrl}"`;
-      let html = execSync(curlCmd, { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }).toString("utf8");
+      let html = execFileSync(
+        CURL_BIN,
+        [
+          "-s",
+          "-L",
+          "-A",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "-H",
+          "Referer: https://www.fullhdfilmizlesene.now/",
+          "--connect-timeout",
+          "8",
+          "-m",
+          "14",
+          targetUrl,
+        ],
+        { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
+      ).toString("utf8");
 
       const baseDomain = targetUrl.startsWith("https://rapidvid.org")
         ? "https://rapidvid.org/"
