@@ -424,8 +424,8 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
           }
         }
       },
-      subtitle: defaultSub ? {
-        url: defaultSub.url,
+      subtitle: {
+        url: defaultSub ? defaultSub.url : '',
         type: 'vtt',
         style: {
           color: '#ffffff',
@@ -435,7 +435,7 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
           marginBottom: '24px',
         },
         encoding: 'utf-8',
-      } : undefined,
+      },
     });
 
     function toggleArtFullscreen() {
