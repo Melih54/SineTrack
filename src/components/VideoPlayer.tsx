@@ -845,65 +845,72 @@ export default function VideoPlayer({
         ref={playerContainerRef}
         className="bg-[#0d0f18] rounded-2xl overflow-hidden border border-white/10 shadow-2xl space-y-0"
       >
-        {/* Dil & Mod Seçenekleri Üst Çubuğu */}
-        <div className="px-4 py-3 bg-[#121422] border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Languages className="w-4 h-4 text-red-500" />
-            <span className="text-xs font-bold text-gray-200">Ses & Dil Seçeneği:</span>
-          </div>
-
-          <div className="flex items-center flex-wrap gap-2">
+        {/* Dil & Mod Seçenekleri Üst Çubuğu — Mobile-first: compact layout */}
+        <div className="px-3 sm:px-4 py-2 bg-[#121422] border-b border-white/10 space-y-2">
+          {/* Row 1: Language buttons + Fullscreen */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* TÜRKÇE DUBLAJ */}
             <button
               type="button"
               onClick={() => handleLanguageChange("tr_dub")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`flex-1 sm:flex-none px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center sm:justify-start gap-1 cursor-pointer ${
                 selectedLanguage === "tr_dub"
                   ? "bg-amber-600 text-white shadow-lg shadow-amber-600/40 ring-2 ring-amber-400/50"
                   : "bg-white/5 text-gray-300 hover:text-white hover:bg-white/10"
               }`}
             >
-              <span>🇹🇷 Türkçe Dublaj</span>
-              {hasDub && (
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Özel Türkçe Dublaj Hazır" />
-              )}
+              <span>🇹🇷</span>
+              <span className="hidden sm:inline">Dublaj</span>
+              {hasDub && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />}
             </button>
 
             {/* TÜRKÇE ALTYAZILI */}
             <button
               type="button"
               onClick={() => handleLanguageChange("tr_sub")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`flex-1 sm:flex-none px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center sm:justify-start gap-1 cursor-pointer ${
                 selectedLanguage === "tr_sub"
                   ? "bg-red-600 text-white shadow-lg shadow-red-600/40 ring-2 ring-red-400/50"
                   : "bg-white/5 text-gray-300 hover:text-white hover:bg-white/10"
               }`}
             >
-              <span>💬 Türkçe Altyazılı</span>
-              {hasSub && (
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Özel Türkçe Altyazı Hazır" />
-              )}
+              <span>💬</span>
+              <span className="hidden sm:inline">Altyazı</span>
+              {hasSub && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />}
             </button>
 
             {/* ORİJİNAL DİL */}
             <button
               type="button"
               onClick={() => handleLanguageChange("original")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`flex-1 sm:flex-none px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center sm:justify-start gap-1 cursor-pointer ${
                 selectedLanguage === "original"
                   ? "bg-purple-600 text-white shadow-lg shadow-purple-600/40 ring-2 ring-purple-400/50"
                   : "bg-white/5 text-gray-300 hover:text-white hover:bg-white/10"
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
-              <span>🌐 Orijinal Dil</span>
+              <span className="hidden sm:inline">Orijinal</span>
             </button>
-          </div>
 
-          {/* Dizi İçin Oynatıcı İçi Hızlı Bölüm Değiştirici & Sinema Modu Butonları */}
-          <div className="flex items-center gap-2 ml-auto">
+            {/* Desktop: Sinema modu */}
+            <button
+              type="button"
+              onClick={() => setIsCinemaMode(!isCinemaMode)}
+              className={`hidden sm:flex px-3 py-1.5 rounded-xl text-xs font-bold transition-all items-center gap-1.5 cursor-pointer shrink-0 ${
+                isCinemaMode
+                  ? "bg-amber-500 text-black shadow-lg shadow-amber-500/40 ring-2 ring-amber-300"
+                  : "bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 border border-white/10"
+              }`}
+              title={isCinemaMode ? "Sinema modundan çık (ESC)" : "Sinema Modu"}
+            >
+              <Lightbulb className={`w-3.5 h-3.5 ${isCinemaMode ? "fill-black text-black" : "text-amber-400"}`} />
+              <span>{isCinemaMode ? "Işıkları Aç" : "🎬 Sinema"}</span>
+            </button>
+
+            {/* Desktop: Episode nav */}
             {mediaType === "tv" && onSelectEpisode && (
-              <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-xl border border-white/5">
+              <div className="hidden sm:flex items-center gap-1 bg-black/40 p-0.5 rounded-xl border border-white/5">
                 <button
                   type="button"
                   onClick={handlePrevEpisode}
@@ -933,30 +940,62 @@ export default function VideoPlayer({
               </div>
             )}
 
+            {/* Tam Ekran — always visible */}
+            <button
+              type="button"
+              onClick={handleNativeFullscreen}
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
+              title="Tam Ekran"
+            >
+              <Maximize2 className="w-4 h-4 text-red-400" />
+              <span className="hidden sm:inline">Tam Ekran</span>
+            </button>
+          </div>
+
+          {/* Row 2 — Mobile only: Sinema + Episode nav */}
+          <div className="flex sm:hidden items-center gap-2">
             <button
               type="button"
               onClick={() => setIsCinemaMode(!isCinemaMode)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 isCinemaMode
-                  ? "bg-amber-500 text-black shadow-lg shadow-amber-500/40 ring-2 ring-amber-300 font-extrabold"
-                  : "bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 border border-white/10"
+                  ? "bg-amber-500 text-black shadow-lg shadow-amber-500/40 ring-2 ring-amber-300"
+                  : "bg-white/5 text-gray-300 border border-white/10"
               }`}
-              title={isCinemaMode ? "Sinema modundan çık (ESC)" : "Sayfa ışıklarını kapat ve oynatıcıyı büyüt"}
             >
               <Lightbulb className={`w-3.5 h-3.5 ${isCinemaMode ? "fill-black text-black" : "text-amber-400"}`} />
               <span>{isCinemaMode ? "Işıkları Aç" : "🎬 Sinema Modu"}</span>
             </button>
 
-            {/* Tam Ekran Butonu */}
-            <button
-              type="button"
-              onClick={handleNativeFullscreen}
-              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
-              title="Tam Ekran"
-            >
-              <Maximize2 className="w-3.5 h-3.5 text-red-400" />
-              <span className="hidden sm:inline">Tam Ekran</span>
-            </button>
+            {mediaType === "tv" && onSelectEpisode && (
+              <div className="flex items-center gap-0.5 bg-black/40 p-0.5 rounded-xl border border-white/10">
+                <button
+                  type="button"
+                  onClick={handlePrevEpisode}
+                  disabled={!hasPrevEpisode}
+                  className="p-1.5 rounded-lg text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 cursor-pointer"
+                  title="Önceki Bölüm"
+                >
+                  <SkipBack className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEpisodeModal(true)}
+                  className="px-2 py-1 text-[11px] font-bold text-gray-200 rounded-lg flex items-center gap-1 cursor-pointer active:scale-95"
+                >
+                  <List className="w-3 h-3 text-red-500" />
+                  <span>S{season}:B{episode}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextEpisode}
+                  className="p-1.5 rounded-lg bg-red-600 text-white active:scale-95 cursor-pointer"
+                  title="Sonraki Bölüm"
+                >
+                  <SkipForward className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
