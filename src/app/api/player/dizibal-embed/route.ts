@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { resolveDizibalSource } from "@/lib/dizibal-resolver";
 import { resolveFullHDSource } from "@/lib/fullhd-resolver";
 import { getBaseUrl } from "@/lib/curl";
+import { renderArtplayerHtml } from "@/lib/artplayer-template";
 
 export const dynamic = "force-dynamic";
 
@@ -81,264 +82,21 @@ export async function GET(req: Request) {
   // Proxied master stream URL via dizi-m3u8 so child playlists and all chunks are rewritten through proxy
   const proxiedMasterStream = `/api/player/dizi-m3u8?title=${encodeURIComponent(displayTitle)}&tmdbId=${tmdbId || ""}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=${lang}&streamUrl=${encodeURIComponent(m3u8Url)}&ref=${encodeURIComponent(referer)}`;
 
-  const tracksHtml = subtitles
-    .map((sub) => {
-      const absFile = sub.file.startsWith("http") ? sub.file : new URL(sub.file, referer).href;
-      const subProxyUrl = `/api/player/stream-proxy?ref=${encodeURIComponent(referer)}&url=${encodeURIComponent(absFile)}`;
-      const isDefault = sub.lang === "tr" && lang !== "original";
-      return `<track label="${sub.label}" kind="subtitles" srclang="${sub.lang}" src="${subProxyUrl}" ${isDefault ? "default" : ""}>`;
-    })
-    .join("\n        ");
-
-  const playerHtml = `<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>${displayTitle} ${mediaType === "tv" ? `- ${season}. Sezon ${episode}. Bölüm` : ""}</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      width: 100%; height: 100%; background: #000; overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-    #player-container {
-      position: relative; width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center; background: #000;
-    }
-    video {
-      width: 100%; height: 100%; object-fit: contain; background: #000;
-    }
-    #loader {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background: #0b0c15; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; z-index: 20;
-      transition: opacity 0.3s ease; cursor: pointer;
-    }
-    .spinner {
-      width: 48px; height: 48px; border: 4px solid rgba(255, 255, 255, 0.1);
-      border-top-color: #f59e0b; border-radius: 50%;
-      animation: spin 0.8s linear infinite; margin-bottom: 16px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #fff; font-size: 14px; font-weight: 600; }
-    .play-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 10px 24px; background: #f59e0b; color: #000;
-      font-size: 14px; font-weight: bold; border-radius: 9999px; margin-top: 14px;
-      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
-    }
-    /* Top Bar */
-    #top-bar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 10px 14px;
-      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 10;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      pointer-events: none !important;
-    }
-    #player-container:hover #top-bar {
-      opacity: 1;
-    }
-    @media (max-width: 640px) {
-      #top-bar {
-        padding-left: 64px !important;
-      }
-    }
-    .title-info {
-      color: #fff;
-      font-size: 12px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      min-width: 0;
-      pointer-events: none;
-    }
-    .badge {
-      font-size: 10px;
-      font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: #f59e0b;
-      color: #000;
-      shrink: 0;
-    }
-    .badge-sub {
-      background: rgba(255,255,255,0.15);
-      color: #fff;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 10px;
-      shrink: 0;
-    }
-    .controls-right {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      pointer-events: auto;
-    }
-    .btn-fs {
-      background: rgba(255,255,255,0.15);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.25);
-      padding: 4px 9px;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      backdrop-filter: blur(8px);
-      transition: all 0.2s;
-    }
-    .btn-fs:hover {
-      background: rgba(255,255,255,0.3);
-    }
-  </style>
-</head>
-<body>
-  <div id="player-container">
-    <div id="top-bar">
-      <div class="title-info">
-        <span class="badge">🐝 DiziBal HD</span>
-        <span class="badge-sub">${mediaType === "tv" ? `S${season}:B${episode}` : "1080p"}</span>
-        <span style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">${displayTitle}</span>
-      </div>
-      <div class="controls-right">
-        <button class="btn-fs" onclick="toggleFs()" title="Tam Ekran">
-          <span>⛶</span>
-          <span style="font-size:10px;">Tam Ekran</span>
-        </button>
-      </div>
-    </div>
-
-    <div id="loader" onclick="startPlay()">
-      <div class="spinner"></div>
-      <div class="loading-text">Yayın Yükleniyor...</div>
-      <div class="play-badge">▶ Başlat</div>
-    </div>
-
-    <video
-      id="video"
-      playsinline
-      webkit-playsinline
-      controls
-      crossorigin="anonymous"
-      poster="https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1280&q=80"
-    >
-      ${tracksHtml}
-    </video>
-  </div>
-
-  <script>
-    const video = document.getElementById('video');
-    const loader = document.getElementById('loader');
-    const streamSource = "${proxiedMasterStream}";
-    let started = false;
-
-    function notify(type, extra) {
-      try {
-        window.parent.postMessage(Object.assign({ type: type, source: "dizibal-embed" }, extra || {}), "*");
-      } catch(e) {}
-    }
-
-    function toggleFs() {
-      if (video.webkitEnterFullscreen) {
-        video.webkitEnterFullscreen();
-      } else if (video.requestFullscreen) {
-        video.requestFullscreen();
-      } else if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else if (video.webkitRequestFullscreen) {
-        video.webkitRequestFullscreen();
-      }
-    }
-
-    function hideLoader() {
-      if (loader) {
-        loader.style.opacity = '0';
-        setTimeout(() => { loader.style.display = 'none'; }, 300);
-      }
-    }
-
-    function startPlay() {
-      started = true;
-      video.play().then(hideLoader).catch(() => {});
-    }
-
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 90,
-      });
-
-      hls.loadSource(streamSource);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
-        notify("STREAM_READY");
-        if (data.audioTracks && data.audioTracks.length > 0) {
-          const isDub = "${lang}" === "tr_dub";
-          const trIndex = data.audioTracks.findIndex(t => /turk|türk|tr/i.test(t.name || t.lang));
-          const origIndex = data.audioTracks.findIndex(t => !/turk|türk|tr/i.test(t.name || t.lang));
-          if (isDub && trIndex !== -1) {
-            hls.audioTrack = trIndex;
-          } else if (!isDub && origIndex !== -1) {
-            hls.audioTrack = origIndex;
-          }
-        }
-        hideLoader();
-        video.play().catch(() => {});
-      });
-
-      hls.on(Hls.Events.ERROR, function(event, data) {
-        if (data.fatal) {
-          switch(data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
-            default:
-              notify("STREAM_ERROR", { reason: data.type });
-              hls.destroy();
-              break;
-          }
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari / iOS Native HLS
-      video.src = streamSource;
-      video.addEventListener('loadedmetadata', function() {
-        notify("STREAM_READY");
-        hideLoader();
-        video.play().catch(() => {});
-      });
-    }
-
-    video.addEventListener('playing', function() {
-      notify("STREAM_PLAYING");
-      hideLoader();
-    });
-    video.addEventListener('canplay', hideLoader);
-    video.addEventListener('error', function(e) {
-      notify("STREAM_ERROR", { reason: "VIDEO_ELEMENT_ERROR" });
-    });
-  </script>
-</body>
-</html>`;
+  const playerHtml = renderArtplayerHtml({
+    title: displayTitle,
+    originalTitle,
+    mediaType,
+    season,
+    episode,
+    tmdbId,
+    lang,
+    masterStreamUrl: proxiedMasterStream,
+    subtitles,
+    referer,
+    provider: "DiziBal HD",
+    badge: "🐝 DiziBal HD",
+    themeColor: "#f59e0b",
+  });
 
   return new NextResponse(playerHtml, {
     headers: {
@@ -347,3 +105,4 @@ export async function GET(req: Request) {
     },
   });
 }
+

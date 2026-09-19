@@ -102,6 +102,7 @@ export default function VideoPlayer({
   const [drawerSelectedSeason, setDrawerSelectedSeason] = useState(season || 1);
   const [showSubGuide, setShowSubGuide] = useState(false);
   const playerContainerRef = useRef<HTMLDivElement>(null);
+  const lastPlaybackTimeRef = useRef<number>(0);
 
   const handleNativeFullscreen = () => {
     if (!playerContainerRef.current) return;
@@ -119,6 +120,11 @@ export default function VideoPlayer({
     setDrawerSelectedSeason(season || 1);
   }, [season]);
 
+  // Sezon veya bölüm değiştiğinde oynatma süresini sıfırla
+  useEffect(() => {
+    lastPlaybackTimeRef.current = 0;
+  }, [season, episode]);
+
   const activeSeasonList = seasons?.filter((s) => s.season_number > 0) || seasons || [];
   const currentSeasonData = activeSeasonList.find((s) => s.season_number === season);
   const seasonEpisodeCount = currentSeasonData?.episode_count || 10;
@@ -126,6 +132,7 @@ export default function VideoPlayer({
 
   const handlePrevEpisode = () => {
     if (!onSelectEpisode) return;
+    lastPlaybackTimeRef.current = 0;
     if (episode > 1) {
       onSelectEpisode(season, episode - 1);
     } else if (season > 1) {
@@ -134,8 +141,9 @@ export default function VideoPlayer({
     }
   };
 
-  const handleNextEpisode = () => {
+  const handleNextEpisode = useCallback(() => {
     if (!onSelectEpisode) return;
+    lastPlaybackTimeRef.current = 0;
     if (episode < seasonEpisodeCount) {
       onSelectEpisode(season, episode + 1);
     } else {
@@ -147,7 +155,20 @@ export default function VideoPlayer({
         onSelectEpisode(season, episode + 1);
       }
     }
-  };
+  }, [episode, onSelectEpisode, season, seasonEpisodeCount, activeSeasonList]);
+
+  // Artplayer'dan gelen TIME_UPDATE ve NEXT_EPISODE mesajlarını dinle
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === "TIME_UPDATE" && typeof e.data.currentTime === "number") {
+        lastPlaybackTimeRef.current = e.data.currentTime;
+      } else if (e.data?.type === "NEXT_EPISODE") {
+        handleNextEpisode();
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [handleNextEpisode]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -266,11 +287,27 @@ export default function VideoPlayer({
   }
 
   // Akıllı URL çözümleyici (YouTube, Drive, MP4, iframe kodunu temizler)
-  const { url: finalUrl, isDirectVideo } = parseSmartVideoUrl(rawUrlToPlay);
+  let { url: finalUrl, isDirectVideo } = parseSmartVideoUrl(rawUrlToPlay);
+
+  // İç oynatıcılarımız için ve video linkleri için kaldığı yerden devam etme parametresi ekle
+  if (finalUrl && lastPlaybackTimeRef.current > 5) {
+    if (finalUrl.includes("/api/player/") && !finalUrl.includes("&t=") && !finalUrl.includes("?t=")) {
+      finalUrl += (finalUrl.includes("?") ? "&" : "?") + `t=${Math.floor(lastPlaybackTimeRef.current)}`;
+    }
+  }
 
   const handleLanguageChange = (lang: "tr_dub" | "tr_sub" | "original") => {
     setSelectedLanguage(lang);
     setUseManualUrl(false);
+
+    // Aktif iframe'e canlı ses değiştirme mesajı gönder
+    try {
+      const iframe = playerContainerRef.current?.querySelector("iframe");
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: "CHANGE_LANGUAGE", lang }, "*");
+      }
+    } catch (e) {}
+
     const customForLang = customSources.filter((s) => s.language === lang);
     if (customForLang.length > 0) {
       setActiveCustomSourceId(customForLang[0].id);
