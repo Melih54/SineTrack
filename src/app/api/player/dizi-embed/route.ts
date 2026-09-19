@@ -17,32 +17,45 @@ export async function GET(req: Request) {
   const episode = parseInt(searchParams.get("episode") || "1", 10);
   const lang = (searchParams.get("lang") || "tr_dub") as "tr_dub" | "tr_sub" | "original";
 
+  const sourceParam = searchParams.get("source");
+  const isAtomRequested = sourceParam === "atom";
+
   let matched: SeriesStreamSource | null = null;
 
-  // 1. PRIMARY: Try Dizibal REST API (high-speed, exact TMDB match, clean m3u8)
-  try {
-    const dizibalStream = await resolveDizibalSource({
-      title,
-      originalTitle,
-      tmdbId,
-      mediaType: isMovie ? "movie" : "tv",
-      season,
-      episode,
-    });
-    if (dizibalStream && dizibalStream.m3u8Url) {
-      matched = {
-        provider: "DiziBal",
-        lang,
-        label: "DiziBal (1080P)",
-        quality: "1080P",
-        m3u8Url: dizibalStream.m3u8Url,
-        rawIframeSrc: dizibalStream.embedUrl,
-        referer: dizibalStream.referer,
-        embedUrl: req.url,
-        subtitles: dizibalStream.subtitles,
-      };
-    }
-  } catch (err) {}
+  // 1. If user requested Atom, check Dizilla / Dizipal first!
+  if (isAtomRequested && !isMovie) {
+    try {
+      const sources = resolveSeriesEpisode(title, originalTitle, season, episode);
+      matched = sources.find((s) => s.lang === lang) || sources[0] || null;
+    } catch (e) {}
+  }
+
+  // 2. PRIMARY (default): Try Dizibal REST API (high-speed, exact TMDB match, clean m3u8)
+  if (!matched) {
+    try {
+      const dizibalStream = await resolveDizibalSource({
+        title,
+        originalTitle,
+        tmdbId,
+        mediaType: isMovie ? "movie" : "tv",
+        season,
+        episode,
+      });
+      if (dizibalStream && dizibalStream.m3u8Url) {
+        matched = {
+          provider: "DiziBal",
+          lang,
+          label: "DiziBal (1080P)",
+          quality: "1080P",
+          m3u8Url: dizibalStream.m3u8Url,
+          rawIframeSrc: dizibalStream.embedUrl,
+          referer: dizibalStream.referer,
+          embedUrl: req.url,
+          subtitles: dizibalStream.subtitles,
+        };
+      }
+    } catch (err) {}
+  }
 
   // 2. FALLBACK: Movie -> HDFilmCehennemi, TV -> Dizilla / Dizipal
   if (!matched) {

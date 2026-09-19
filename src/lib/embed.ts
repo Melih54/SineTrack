@@ -98,12 +98,12 @@ export const EMBED_SERVERS: EmbedServer[] = [
   {
     id: "atom-player-sub",
     name: "⚡ Dizipal & Dizilla / Atom",
-    badge: "1080p • Takılmasız",
+    badge: "4K & 1080p • Altyazılı",
     language: "tr_sub",
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
-        ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`
-        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&lang=tr_sub`,
+        ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&lang=tr_sub`
+        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&lang=tr_sub&source=atom`,
   },
   {
     id: "hdf-player-sub",
@@ -138,12 +138,12 @@ export const EMBED_SERVERS: EmbedServer[] = [
   {
     id: "atom-player-dub",
     name: "⚡ Dizipal & Dizilla / Atom",
-    badge: "1080p • Türkçe Dublaj",
+    badge: "4K & 1080p • Dublaj",
     language: "tr_dub",
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
-        ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`
-        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&lang=tr_dub`,
+        ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&lang=tr_dub`
+        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&lang=tr_dub&source=atom`,
   },
   {
     id: "hdf-player-dub",
@@ -178,12 +178,12 @@ export const EMBED_SERVERS: EmbedServer[] = [
   {
     id: "atom-player-orig",
     name: "⚡ Dizipal & Dizilla / Atom",
-    badge: "Orijinal Dil",
+    badge: "4K & 1080p • Orijinal Dil",
     language: "original",
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
-        ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}`
-        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&lang=original`,
+        ? `/api/player/atom-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&lang=original`
+        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&season=${season}&episode=${episode}&lang=original&source=atom`,
   },
   {
     id: "hdf-player-orig",
