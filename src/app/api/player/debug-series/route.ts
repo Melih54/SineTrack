@@ -83,15 +83,23 @@ export async function GET(req: Request) {
 
   // 5. Probe candidates
   const candidates = [
-    "https://hdfilmcehennemi.vip/search?q=Breaking%20Bad",
-    "https://hdfilmcehennemi.com/search?q=Breaking%20Bad",
-    "https://hdfilmcehennemi.life/search?q=Breaking%20Bad",
-    "https://www.hdfilmcehennemi.net/search?q=Breaking%20Bad",
-    "https://dizilla.club/breaking-bad-1-sezon-1-bolum",
-    "https://dizilla2.com/breaking-bad-1-sezon-1-bolum",
-    "https://dizipal1581.com/bolum/breaking-bad-1x1",
-    "https://www.dizibox.tv/breaking-bad-1-sezon-1-bolum-izle/",
-    "https://yabancidizi.pw/dizi/breaking-bad/sezon-1/bolum-1",
+    "https://www.fullhdfilmizlesene.now/film-ara?kelime=breaking+bad",
+    "https://filmmodu.org/dizi/breaking-bad-izle",
+    "https://filmmodu.cx/dizi/breaking-bad-izle",
+    "https://sezonlukdizi.vip/diziler/breaking-bad.html",
+    "https://sezonlukdizi.net/diziler/breaking-bad.html",
+    "https://sezonlukdizi.org/diziler/breaking-bad.html",
+    "https://diziyo.org/dizi/breaking-bad",
+    "https://diziyou.co/dizi/breaking-bad",
+    "https://sinefy.cc/dizi/breaking-bad",
+    "https://webteizle.vip/dizi/breaking-bad",
+    "https://720p-izle.com/dizi/breaking-bad",
+    "https://filmakinesi.net/dizi/breaking-bad-izle.html",
+    "https://vidsrc.cc/v2/embed/tv/1396/1/1",
+    "https://vidsrc.xyz/embed/tv?tmdb=1396&season=1&episode=1",
+    "https://player.videasy.net/tv/1396/1/1",
+    "https://vidlink.pro/tv/1396/1/1",
+    "https://autoembed.co/tv/tmdb/1396-1-1",
   ];
 
   const probeResults: Record<string, any> = {};
