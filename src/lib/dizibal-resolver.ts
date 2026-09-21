@@ -1,3 +1,6 @@
+import { execFileSync } from "child_process";
+import { CURL_BIN } from "./curl";
+
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
@@ -25,123 +28,74 @@ export async function resolveDizibalSource(params: {
 }): Promise<DizibalResolvedStream | null> {
   const { title, originalTitle, tmdbId, mediaType, season = 1, episode = 1 } = params;
   const queries = Array.from(new Set([title, originalTitle].filter(Boolean))) as string[];
-  const endpoint = mediaType === "tv" ? "series" : "movies";
+  const isTv = mediaType === "tv";
 
   for (const q of queries) {
     try {
-      const searchUrl = "https://dizibal.org/api/" + endpoint + "?search=" + encodeURIComponent(q.trim()) + "&lang=tr&siteMode=full";
-      const searchRes = await fetch(searchUrl, {
-        headers: {
-          "User-Agent": CHROME_UA,
-          "Accept": "application/json",
-        },
-        signal: AbortSignal.timeout(10000),
-      });
+      const searchUrl = `https://dizibal.org/ara?q=${encodeURIComponent(q.trim())}`;
+      const searchHtml = execFileSync(
+        CURL_BIN,
+        ["-s", "-L", "-A", CHROME_UA, "--connect-timeout", "8", "-m", "12", searchUrl],
+        { timeout: 15000 }
+      ).toString("utf8");
 
-      if (!searchRes.ok) continue;
-      const searchData = await searchRes.json();
-      const items = searchData.data || [];
-      if (!items.length) continue;
+      const pattern = isTv
+        ? /href="https:\/\/dizibal\.org\/series\/([^"\/]+)"/i
+        : /href="https:\/\/dizibal\.org\/movie\/([^"\/]+)"/i;
 
-      // 1. Match by TMDB ID first
-      let match = tmdbId ? items.find((x: any) => Number(x.id) === Number(tmdbId)) : null;
-
-      // 2. Match by title similarity
-      if (!match) {
-        const cleanQ = q.toLowerCase().replace(/[^a-z0-9]/g, "");
-        match = items.find((x: any) => {
-          const itemTitle = (x.title || x.name || x.title_tr || x.name_tr || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-          const origTitle = (x.original_title || x.original_name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-          return itemTitle.includes(cleanQ) || cleanQ.includes(itemTitle) || origTitle.includes(cleanQ);
-        }) || items[0];
+      let match = searchHtml.match(pattern);
+      if (!match && !isTv) {
+        match = searchHtml.match(/href="https:\/\/dizibal\.org\/film\/([^"\/]+)"/i);
       }
-
       if (!match) continue;
 
-      // 3. Resolve stream page URL
-      let embedPageUrl = match.streamUrl;
-      if (mediaType === "tv") {
-        const epUrl = "https://dizibal.org/api/series/" + match._id + "/seasons/" + season + "/episodes/" + episode + "/stream?lang=tr&siteMode=full";
-        const epRes = await fetch(epUrl, {
-          headers: { "User-Agent": CHROME_UA },
-          signal: AbortSignal.timeout(10000),
-        });
-        if (epRes.ok) {
-          const epData = await epRes.json();
-          embedPageUrl = epData.data?.streamUrl;
-        }
-      } else if (!embedPageUrl && match._id) {
-        const movieStreamUrl = "https://dizibal.org/api/movies/" + match._id + "/stream?lang=tr&siteMode=full";
-        const mRes = await fetch(movieStreamUrl, {
-          headers: { "User-Agent": CHROME_UA },
-          signal: AbortSignal.timeout(10000),
-        });
-        if (mRes.ok) {
-          const mData = await mRes.json();
-          embedPageUrl = mData.data?.streamUrl;
-        }
-      }
+      const slug = match[1];
+      const targetUrl = isTv
+        ? `https://dizibal.org/series/${slug}/season/${season}/episode/${episode}`
+        : `https://dizibal.org/movie/${slug}`;
 
-      if (!embedPageUrl || !embedPageUrl.startsWith("http")) continue;
+      const pageHtml = execFileSync(
+        CURL_BIN,
+        ["-s", "-L", "-A", CHROME_UA, "-H", "Referer: https://dizibal.org/", "--connect-timeout", "8", "-m", "14", targetUrl],
+        { timeout: 15000 }
+      ).toString("utf8");
 
-      // 4. Fetch embed page to get stream hash and subtitles
-      const origin = new URL(embedPageUrl).origin;
-      const pageRes = await fetch(embedPageUrl, {
-        headers: {
-          "User-Agent": CHROME_UA,
-          "Referer": "https://dizibal.org/",
-        },
-        signal: AbortSignal.timeout(12000),
-      });
+      const pvMatch = pageHtml.match(/data-pv="([^"]+)"/i);
+      if (!pvMatch) continue;
 
-      if (!pageRes.ok) continue;
-      const pageHtml = await pageRes.text();
+      const pvSlug = pvMatch[1];
+      const sPhpUrl = `https://pilavyerplay.top/assets/js/s.php?s=${encodeURIComponent(pvSlug)}`;
 
-      // Extract stream parameter: op=get_stream&view_id=...&hash=...
-      const streamParamMatch = pageHtml.match(/op=get_stream&view_id=\d+&hash=[0-9a-f-]+/i);
-      if (!streamParamMatch) continue;
+      const sPhpHtml = execFileSync(
+        CURL_BIN,
+        ["-s", "-L", "-A", CHROME_UA, "-H", "Referer: https://dizibal.org/", "--connect-timeout", "8", "-m", "14", sPhpUrl],
+        { timeout: 15000 }
+      ).toString("utf8");
 
-      // Parse subtitles
+      const playerMatch = sPhpHtml.match(/window\.__PLAYER__\s*=\s*(\{[\s\S]*?\});/);
+      if (!playerMatch) continue;
+
+      const playerObj = JSON.parse(playerMatch[1]);
+      if (!playerObj.stream) continue;
+
       const subtitles: Array<{ label: string; lang: string; file: string }> = [];
-      const subMatch = pageHtml.match(/"subtitle"\s*:\s*"([^"]+)"/i);
-      if (subMatch && subMatch[1]) {
-        const entries = subMatch[1].split(",");
-        for (const entry of entries) {
-          const m = entry.match(/\[(.*?)\](.*)/);
-          if (m) {
-            const label = m[1].trim();
-            let file = m[2].trim();
-            if (file.startsWith("/")) {
-              file = origin + file;
-            }
-            const lang = /turk|türk|tr/i.test(label) ? "tr" : "en";
-            subtitles.push({ label, lang, file });
-          }
+      if (Array.isArray(playerObj.subs)) {
+        for (const sub of playerObj.subs) {
+          subtitles.push({
+            label: sub.label || (sub.lang === "tr" ? "Türkçe" : "İngilizce"),
+            lang: sub.lang || (sub.label?.toLowerCase().includes("türk") ? "tr" : "en"),
+            file: sub.src,
+          });
         }
       }
-
-      // 5. Query dl endpoint for direct master m3u8
-      const dlUrl = origin + "/dl?" + streamParamMatch[0];
-      const dlRes = await fetch(dlUrl, {
-        headers: {
-          "User-Agent": CHROME_UA,
-          "Referer": embedPageUrl,
-          "Origin": origin,
-        },
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (!dlRes.ok) continue;
-      const dlData = await dlRes.json();
-      if (!dlData.url) continue;
 
       return {
-        title: match.title || match.name || q,
-        tmdbId: match.id ? Number(match.id) : undefined,
+        title: playerObj.title || title,
+        tmdbId: tmdbId ? Number(tmdbId) : undefined,
         mediaType,
-        m3u8Url: dlData.url,
-        referer: origin + "/",
-        embedUrl: embedPageUrl,
+        m3u8Url: playerObj.stream,
+        referer: sPhpUrl,
+        embedUrl: sPhpUrl,
         subtitles,
       };
     } catch (err) {}

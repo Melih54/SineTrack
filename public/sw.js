@@ -39,7 +39,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Bypass video streams, all API calls, proxy calls, and non-GET requests
+  // Bypass video streams, all API routes, proxy calls, and external CDNs
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname.includes('.m3u8') ||
@@ -51,7 +51,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first strategy for pages and static assets
+  // Network-first strategy for pages and API
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -76,7 +76,7 @@ self.addEventListener('fetch', (event) => {
           if (request.mode === 'navigate') {
             return caches.match('/');
           }
-          return Response.error();
+          return new Response('Offline', { status: 503, statusText: 'Offline' });
         });
       })
   );

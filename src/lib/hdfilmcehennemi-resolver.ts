@@ -1,7 +1,10 @@
 import { execFileSync } from "child_process";
 import vm from "vm";
 import { getWorkingDomain } from "./domain-resolver";
-import { CURL_BIN, CHROME_UA, BROWSER_HEADERS } from "./curl";
+import { CURL_BIN } from "./curl";
+
+const CHROME_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 export interface HdfSubtitle {
   file: string;
@@ -26,21 +29,44 @@ const hdfCache = new Map<string, { timestamp: number; data: HdfStreamResult }>()
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
 function decryptHdfStream(embedHtml: string): string | null {
+  // 1. Try finding variable from sources: [{file: <varName>, type: "hls"}]
+  const fileVarMatch = embedHtml.match(/sources:\s*\[\s*\{\s*file:\s*([a-zA-Z0-9_]+)/i);
+  const targetVarName = fileVarMatch ? fileVarMatch[1] : null;
+
   const scriptMatches = embedHtml.match(/<script[\s\S]*?<\/script>/gi) || [];
 
   for (const sm of scriptMatches) {
     const code = sm.replace(/<\/?script[^>]*>/gi, "");
+
+    if (targetVarName && (code.includes(`var ${targetVarName} =`) || code.includes(`var ${targetVarName}=`))) {
+      const sandbox = {
+        window: {},
+        document: { getElementById: () => ({}) },
+        atob: (str: string) => Buffer.from(str, "base64").toString("binary"),
+        btoa: (str: string) => Buffer.from(str, "binary").toString("base64"),
+        result: null as string | null,
+      };
+      try {
+        vm.runInNewContext(code + `;\nresult = ${targetVarName};`, sandbox, { timeout: 2000 });
+        if (sandbox.result && typeof sandbox.result === "string" && sandbox.result.startsWith("http")) {
+          return sandbox.result;
+        }
+      } catch (e) {}
+    }
+
     if (code.includes("charCodeAt") && code.includes("atob")) {
-      const varMatch = code.match(/var\s+([a-zA-Z0-9_]+)\s*=\s*[a-zA-Z0-9_]+\s*\(\s*\[/);
+      const varMatch = code.match(/var\s+([a-zA-Z0-9_]+)\s*=\s*[a-zA-Z0-9_]+\s*\(/);
       if (varMatch) {
         const varName = varMatch[1];
         const sandbox = {
+          window: {},
+          document: { getElementById: () => ({}) },
           atob: (str: string) => Buffer.from(str, "base64").toString("binary"),
           btoa: (str: string) => Buffer.from(str, "binary").toString("base64"),
           result: null as string | null,
         };
         try {
-          vm.runInNewContext(code + `;\nresult = ${varName};`, sandbox, { timeout: 1500 });
+          vm.runInNewContext(code + `;\nresult = ${varName};`, sandbox, { timeout: 2000 });
           if (sandbox.result && typeof sandbox.result === "string" && sandbox.result.startsWith("http")) {
             return sandbox.result;
           }
@@ -85,8 +111,8 @@ function searchHdf(baseDomain: string, query: string): Array<{ title: string; hr
         "-s",
         "-L",
         "-A", CHROME_UA,
-        ...BROWSER_HEADERS,
         "-H", "X-Requested-With: fetch",
+        "-H", "Content-Type: application/json",
         "-H", `Referer: ${baseDomain}/`,
         "--connect-timeout", "8",
         "-m", "14",
@@ -154,7 +180,6 @@ export function resolveHdfSeriesEpisode(
             "-s",
             "-L",
             "-A", CHROME_UA,
-            ...BROWSER_HEADERS,
             "-H", `Referer: ${baseDomain}/`,
             "--connect-timeout", "8",
             "-m", "14",
@@ -182,7 +207,6 @@ export function resolveHdfSeriesEpisode(
             "-s",
             "-L",
             "-A", CHROME_UA,
-            ...BROWSER_HEADERS,
             "-H", `Referer: ${seriesItem.href}`,
             "--connect-timeout", "8",
             "-m", "14",
@@ -204,7 +228,6 @@ export function resolveHdfSeriesEpisode(
             "-s",
             "-L",
             "-A", CHROME_UA,
-            ...BROWSER_HEADERS,
             "-H", `Referer: ${episodeUrl}`,
             "--connect-timeout", "8",
             "-m", "15",
@@ -274,7 +297,6 @@ export function resolveHdfMovie(
             "-s",
             "-L",
             "-A", CHROME_UA,
-            ...BROWSER_HEADERS,
             "-H", `Referer: ${baseDomain}/`,
             "--connect-timeout", "8",
             "-m", "14",
@@ -296,7 +318,6 @@ export function resolveHdfMovie(
             "-s",
             "-L",
             "-A", CHROME_UA,
-            ...BROWSER_HEADERS,
             "-H", `Referer: ${movieItem.href}`,
             "--connect-timeout", "8",
             "-m", "15",

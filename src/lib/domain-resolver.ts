@@ -18,7 +18,7 @@ const PROVIDER_SEEDS: Record<StreamProvider, string[]> = {
     "https://www.hdfilmcehennemi.nl",
     "https://hdfilmcehennemi.com",
     "https://hdfilmcehennemi.life",
-    "https://hdfilmcehennemi.vip",
+    "https://hdfilmcehennemi.cx",
     "https://www.hdfilmcehennemi.net",
   ],
   dizilla: [
@@ -31,8 +31,10 @@ const PROVIDER_SEEDS: Record<StreamProvider, string[]> = {
     "https://fullhdfilmizlesene.pw",
   ],
   dizipal: [
-    "https://dizipalguncel.co",
+    "https://dizipal1582.com",
+    "https://dizipal1583.com",
     "https://dizipal1581.com",
+    "https://dizipalguncel.co",
     "https://dizipal30.com",
   ],
 };
@@ -41,7 +43,7 @@ const DEFAULT_DOMAINS: Record<StreamProvider, string> = {
   hdfilmcehennemi: "https://www.hdfilmcehennemi.nl",
   dizilla: "https://dizilla.now",
   fullhdfilmizlesene: "https://www.fullhdfilmizlesene.now",
-  dizipal: "https://dizipal1581.com",
+  dizipal: "https://dizipal1582.com",
 };
 
 const CACHE_FILE = path.join(process.cwd(), "data", "active-domains.json");

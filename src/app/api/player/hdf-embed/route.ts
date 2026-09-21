@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { resolveHdfSeriesEpisode, resolveHdfMovie } from "@/lib/hdfilmcehennemi-resolver";
-import { resolveSeriesEpisode } from "@/lib/series-resolver";
-import { resolveFullHDSource } from "@/lib/fullhd-resolver";
 import { resolveDizibalSource } from "@/lib/dizibal-resolver";
 import { getBaseUrl } from "@/lib/curl";
 import { renderArtplayerHtml } from "@/lib/artplayer-template";
@@ -26,17 +24,11 @@ export async function GET(req: Request) {
   if (!hdf || !hdf.m3u8Url) {
     if (!isMovie) {
       try {
+        const { resolveSeriesEpisode } = await import("@/lib/series-resolver");
         const seriesSources = resolveSeriesEpisode(title, originalTitle, season, episode);
         const matched = seriesSources.find((s) => s.lang === lang) || seriesSources[0];
         if (matched && matched.m3u8Url) {
           return NextResponse.redirect(new URL(`/api/player/dizi-embed?${searchParams.toString()}`, getBaseUrl(req)));
-        }
-      } catch (e) {}
-    } else {
-      try {
-        const atom = resolveFullHDSource(title, originalTitle);
-        if (atom && atom.rapidvidUrl) {
-          return NextResponse.redirect(new URL(atom.embedUrl, getBaseUrl(req)));
         }
       } catch (e) {}
     }

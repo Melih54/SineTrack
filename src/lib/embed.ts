@@ -121,7 +121,7 @@ export const EMBED_SERVERS: EmbedServer[] = [
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
         ? `/api/player/turbo-embed?title=${encodeURIComponent(title)}`
-        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=tv&season=${season}&episode=${episode}&lang=tr_sub`,
+        : `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=tv&season=${season}&episode=${episode}&lang=tr_sub`,
   },
 
   // ==========================================
@@ -161,7 +161,7 @@ export const EMBED_SERVERS: EmbedServer[] = [
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
         ? `/api/player/turbo-embed?title=${encodeURIComponent(title)}`
-        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=tv&season=${season}&episode=${episode}&lang=tr_dub`,
+        : `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=tv&season=${season}&episode=${episode}&lang=tr_dub`,
   },
 
   // ==========================================
@@ -201,6 +201,6 @@ export const EMBED_SERVERS: EmbedServer[] = [
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       mediaType === "movie"
         ? `/api/player/turbo-embed?title=${encodeURIComponent(title)}`
-        : `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=tv&season=${season}&episode=${episode}&lang=original`,
+        : `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=tv&season=${season}&episode=${episode}&lang=original`,
   },
 ];
