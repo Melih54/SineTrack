@@ -18,7 +18,7 @@ const PROVIDER_SEEDS: Record<StreamProvider, string[]> = {
     "https://www.hdfilmcehennemi.nl",
     "https://hdfilmcehennemi.com",
     "https://hdfilmcehennemi.life",
-    "https://hdfilmcehennemi.cx",
+    "https://hdfilmcehennemi.vip",
     "https://www.hdfilmcehennemi.net",
   ],
   dizilla: [

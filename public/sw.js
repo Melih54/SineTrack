@@ -39,10 +39,9 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Bypass video streams, player APIs, proxy calls, and external CDNs
+  // Bypass video streams, all API calls, proxy calls, and non-GET requests
   if (
-    url.pathname.startsWith('/api/player/') ||
-    url.pathname.startsWith('/api/media/') ||
+    url.pathname.startsWith('/api/') ||
     url.pathname.includes('.m3u8') ||
     url.pathname.includes('.ts') ||
     url.pathname.includes('.mp4') ||
@@ -52,7 +51,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first strategy for pages and API
+  // Network-first strategy for pages and static assets
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -77,7 +76,7 @@ self.addEventListener('fetch', (event) => {
           if (request.mode === 'navigate') {
             return caches.match('/');
           }
-          return new Response('Offline', { status: 503, statusText: 'Offline' });
+          return Response.error();
         });
       })
   );

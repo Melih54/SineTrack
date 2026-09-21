@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveDizibalSource } from "@/lib/dizibal-resolver";
 import { resolveFullHDSource } from "@/lib/fullhd-resolver";
+import { resolveSeriesEpisode } from "@/lib/series-resolver";
 import { getBaseUrl } from "@/lib/curl";
 import { renderArtplayerHtml } from "@/lib/artplayer-template";
 
@@ -21,14 +22,17 @@ export async function GET(req: Request) {
   }
 
   // 1. PRIMARY: Resolve via Dizibal JSON REST API
-  const resolved = await resolveDizibalSource({
-    title,
-    originalTitle,
-    tmdbId,
-    mediaType,
-    season,
-    episode,
-  });
+  let resolved = null;
+  try {
+    resolved = await resolveDizibalSource({
+      title,
+      originalTitle,
+      tmdbId,
+      mediaType,
+      season,
+      episode,
+    });
+  } catch (e) {}
 
   let m3u8Url = resolved?.m3u8Url;
   let referer = resolved?.referer || "https://dizibal.org/";
@@ -41,6 +45,23 @@ export async function GET(req: Request) {
     if (atom && atom.rapidvidUrl) {
       return NextResponse.redirect(new URL(atom.embedUrl, getBaseUrl(req)));
     }
+  }
+
+  // 3. FALLBACK for Series: Try Dizilla / Dizipal / HDFilmCehennemi
+  if (!m3u8Url && mediaType === "tv") {
+    try {
+      const seriesSources = resolveSeriesEpisode(title, originalTitle, season, episode);
+      const matched = seriesSources.find((s) => s.lang === lang) || seriesSources[0];
+      if (matched && matched.m3u8Url) {
+        m3u8Url = matched.m3u8Url;
+        referer = matched.referer;
+        subtitles = (matched.subtitles || []).map((s) => ({
+          label: s.label,
+          lang: s.lang,
+          file: s.file,
+        }));
+      }
+    } catch (e) {}
   }
 
   if (!m3u8Url) {

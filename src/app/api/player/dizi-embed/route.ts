@@ -22,15 +22,15 @@ export async function GET(req: Request) {
 
   let matched: SeriesStreamSource | null = null;
 
-  // 1. If user requested Atom, check Dizilla / Dizipal first!
-  if (isAtomRequested && !isMovie) {
+  // 1. For TV Series: Try Dizilla / Dizipal / HDFilmCehennemi directly!
+  if (!isMovie) {
     try {
       const sources = resolveSeriesEpisode(title, originalTitle, season, episode);
       matched = sources.find((s) => s.lang === lang) || sources[0] || null;
     } catch (e) {}
   }
 
-  // 2. PRIMARY (default): Try Dizibal REST API (high-speed, exact TMDB match, clean m3u8)
+  // 2. Try Dizibal REST API
   if (!matched) {
     try {
       const dizibalStream = await resolveDizibalSource({
@@ -57,9 +57,9 @@ export async function GET(req: Request) {
     } catch (err) {}
   }
 
-  // 2. FALLBACK: Movie -> HDFilmCehennemi, TV -> Dizilla / Dizipal
-  if (!matched) {
-    if (isMovie) {
+  // 3. Fallback for Movie -> HDFilmCehennemi
+  if (!matched && isMovie) {
+    try {
       const hdf = resolveHdfMovie(title, originalTitle);
       if (hdf && hdf.m3u8Url) {
         matched = {
@@ -74,10 +74,7 @@ export async function GET(req: Request) {
           subtitles: hdf.subtitles,
         };
       }
-    } else {
-      const sources = resolveSeriesEpisode(title, originalTitle, season, episode);
-      matched = sources.find((s) => s.lang === lang) || sources[0] || null;
-    }
+    } catch (e) {}
   }
 
   if (!matched || !matched.m3u8Url) {

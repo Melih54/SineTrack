@@ -2,7 +2,7 @@ import { execFileSync } from "child_process";
 import crypto from "crypto";
 import { getWorkingDomain } from "./domain-resolver";
 import { resolveHdfSeriesEpisode } from "./hdfilmcehennemi-resolver";
-import { CURL_BIN } from "./curl";
+import { CURL_BIN, CHROME_UA, BROWSER_HEADERS } from "./curl";
 
 const DIZILLA_ALGO = "aes-256-cbc";
 const DIZILLA_KEY = crypto.createHash("sha256").update("!!22xx!!90!!").digest("base64").substring(0, 32);
@@ -10,9 +10,6 @@ const DIZILLA_IV = Buffer.alloc(16, 0);
 
 const DIZIPAL_PASS =
   "3hPn4uCjTVtfYWcjIcoJQ4cL1WWk1qxXI39egLYOmNv6IblA7eKJz68uU3eLzux1biZLCms0quEjTYniGv5z1JcKbNIsDQFSeIZOBZJz4is6pD7UyWDggWWzTLBQbHcQFpBQdClnuQaMNUHtLHTpzCvZy33p6I7wFBvL4fnXBYH84aUIyWGTRvM2G5cfoNf4705tO2kv";
-
-const CHROME_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 function decryptDizilla(ciphertext: string) {
   const decipher = crypto.createDecipheriv(DIZILLA_ALGO, DIZILLA_KEY, DIZILLA_IV);
@@ -154,7 +151,7 @@ export function resolveSeriesEpisode(
       const url = `${dizillaBase}/${slug}-${season}-sezon-${episode}-bolum`;
       const html = execFileSync(
         CURL_BIN,
-        ["-s", "-L", "-A", CHROME_UA, "--connect-timeout", "8", "-m", "14", url],
+        ["-s", "-L", "-A", CHROME_UA, ...BROWSER_HEADERS, "--connect-timeout", "8", "-m", "14", url],
         { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
       ).toString("utf8");
 
@@ -171,6 +168,9 @@ export function resolveSeriesEpisode(
         decrypted.RelatedResults?.getEpisodeSources?.result ||
         [];
 
+      let foundDub = false;
+      let foundSub = false;
+
       for (const s of sources) {
         const srcMatch = (s.source_content || "").match(/src="([^"]+)"/);
         if (!srcMatch) continue;
@@ -180,6 +180,13 @@ export function resolveSeriesEpisode(
           rawSrc = rawSrc.replace("dplayer74.site", "dplayer82.site");
         }
 
+        const sourceLang = (s.language_name || "").toLowerCase();
+        const isSourceDub = sourceLang.includes("dublaj");
+        const isSourceSub = sourceLang.includes("altyaz");
+
+        if (foundDub && isSourceDub && !isSourceSub) continue;
+        if (foundSub && isSourceSub && !isSourceDub) continue;
+
         try {
           const pHtml = execFileSync(
             CURL_BIN,
@@ -187,6 +194,7 @@ export function resolveSeriesEpisode(
               "-s",
               "-A",
               CHROME_UA,
+              ...BROWSER_HEADERS,
               "-H",
               `Referer: ${dizillaBase}/`,
               "--connect-timeout",
@@ -213,6 +221,7 @@ export function resolveSeriesEpisode(
                 "-s",
                 "-A",
                 CHROME_UA,
+                ...BROWSER_HEADERS,
                 "-H",
                 `Referer: ${rawSrc}`,
                 "--connect-timeout",
@@ -233,47 +242,64 @@ export function resolveSeriesEpisode(
               try {
                 const probe = execFileSync(
                   CURL_BIN,
-                  ["-s", "-L", "-A", CHROME_UA, "-H", `Referer: ${rawSrc}`, "--connect-timeout", "6", "-m", "10", m3u8Url],
+                  ["-s", "-L", "-A", CHROME_UA, ...BROWSER_HEADERS, "-H", `Referer: ${rawSrc}`, "--connect-timeout", "6", "-m", "10", m3u8Url],
                   { timeout: 12000 }
                 ).toString("utf8");
                 isWorking = probe.includes("#EXTM3U");
               } catch {}
 
               if (!isWorking) {
-                continue; // Stream dead/blocked, try next source or fallback to HDFilmCehennemi
+                continue;
               }
 
-              results.push({
-                provider: "Dizilla",
-                lang: "tr_dub",
-                label: `${s.source_name || "Dizilla"} (Türkçe Dublaj)`,
-                quality: s.quality_name || "1080P",
-                m3u8Url,
-                rawIframeSrc: rawSrc,
-                referer: rawSrc,
-                embedUrl: `/api/player/dizi-embed?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}&lang=tr_dub`,
-                subtitles: subs,
-              });
+              if (isSourceDub || (!isSourceSub && !foundDub)) {
+                results.push({
+                  provider: "Dizilla",
+                  lang: "tr_dub",
+                  label: `${s.source_name || "Dizilla"} (Türkçe Dublaj)`,
+                  quality: s.quality_name || "1080P",
+                  m3u8Url,
+                  rawIframeSrc: rawSrc,
+                  referer: rawSrc,
+                  embedUrl: `/api/player/dizi-embed?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}&lang=tr_dub`,
+                  subtitles: subs,
+                });
+                foundDub = true;
+              }
 
-              results.push({
-                provider: "Dizilla",
-                lang: "tr_sub",
-                label: `${s.source_name || "Dizilla"} (Türkçe Altyazılı)`,
-                quality: s.quality_name || "1080P",
-                m3u8Url,
-                rawIframeSrc: rawSrc,
-                referer: rawSrc,
-                embedUrl: `/api/player/dizi-embed?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}&lang=tr_sub`,
-                subtitles: subs,
-              });
+              if (isSourceSub || (!isSourceDub && !foundSub)) {
+                results.push({
+                  provider: "Dizilla",
+                  lang: "tr_sub",
+                  label: `${s.source_name || "Dizilla"} (Türkçe Altyazılı)`,
+                  quality: s.quality_name || "1080P",
+                  m3u8Url,
+                  rawIframeSrc: rawSrc,
+                  referer: rawSrc,
+                  embedUrl: `/api/player/dizi-embed?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}&lang=tr_sub`,
+                  subtitles: subs,
+                });
+                foundSub = true;
+              }
 
-              break;
+              if (foundDub && foundSub) {
+                break;
+              }
             }
           }
         } catch {}
       }
 
-      if (results.length > 0) break;
+      if (results.length > 0) {
+        if (!foundDub && foundSub) {
+          const subItem = results.find((r) => r.lang === "tr_sub")!;
+          results.push({ ...subItem, lang: "tr_dub", label: subItem.label.replace("Altyazılı", "Dublaj") });
+        } else if (!foundSub && foundDub) {
+          const dubItem = results.find((r) => r.lang === "tr_dub")!;
+          results.push({ ...dubItem, lang: "tr_sub", label: dubItem.label.replace("Dublaj", "Altyazılı") });
+        }
+        break;
+      }
     } catch {}
   }
 
@@ -318,7 +344,7 @@ export function resolveSeriesEpisode(
         const url = `${dizipalBase}/bolum/${slug}-${season}x${episode}`;
         const html = execFileSync(
           CURL_BIN,
-          ["-s", "-L", "-A", CHROME_UA, "--connect-timeout", "8", "-m", "14", url],
+          ["-s", "-L", "-A", CHROME_UA, ...BROWSER_HEADERS, "--connect-timeout", "8", "-m", "14", url],
           { maxBuffer: 10 * 1024 * 1024, timeout: 15000 }
         ).toString("utf8");
 
@@ -338,6 +364,7 @@ export function resolveSeriesEpisode(
             "-s",
             "-A",
             CHROME_UA,
+            ...BROWSER_HEADERS,
             "-H",
             `Referer: ${dizipalBase}/`,
             "--connect-timeout",
@@ -360,6 +387,7 @@ export function resolveSeriesEpisode(
               "-s",
               "-A",
               CHROME_UA,
+              ...BROWSER_HEADERS,
               "-H",
               `Referer: ${iframeSrc}`,
               "--connect-timeout",

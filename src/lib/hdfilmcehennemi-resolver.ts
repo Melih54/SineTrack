@@ -1,10 +1,7 @@
 import { execFileSync } from "child_process";
 import vm from "vm";
 import { getWorkingDomain } from "./domain-resolver";
-import { CURL_BIN } from "./curl";
-
-const CHROME_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+import { CURL_BIN, CHROME_UA, BROWSER_HEADERS } from "./curl";
 
 export interface HdfSubtitle {
   file: string;
@@ -88,6 +85,7 @@ function searchHdf(baseDomain: string, query: string): Array<{ title: string; hr
         "-s",
         "-L",
         "-A", CHROME_UA,
+        ...BROWSER_HEADERS,
         "-H", "X-Requested-With: fetch",
         "-H", `Referer: ${baseDomain}/`,
         "--connect-timeout", "8",
@@ -156,6 +154,7 @@ export function resolveHdfSeriesEpisode(
             "-s",
             "-L",
             "-A", CHROME_UA,
+            ...BROWSER_HEADERS,
             "-H", `Referer: ${baseDomain}/`,
             "--connect-timeout", "8",
             "-m", "14",
@@ -183,6 +182,7 @@ export function resolveHdfSeriesEpisode(
             "-s",
             "-L",
             "-A", CHROME_UA,
+            ...BROWSER_HEADERS,
             "-H", `Referer: ${seriesItem.href}`,
             "--connect-timeout", "8",
             "-m", "14",
@@ -204,6 +204,7 @@ export function resolveHdfSeriesEpisode(
             "-s",
             "-L",
             "-A", CHROME_UA,
+            ...BROWSER_HEADERS,
             "-H", `Referer: ${episodeUrl}`,
             "--connect-timeout", "8",
             "-m", "15",
@@ -273,6 +274,7 @@ export function resolveHdfMovie(
             "-s",
             "-L",
             "-A", CHROME_UA,
+            ...BROWSER_HEADERS,
             "-H", `Referer: ${baseDomain}/`,
             "--connect-timeout", "8",
             "-m", "14",
@@ -294,6 +296,7 @@ export function resolveHdfMovie(
             "-s",
             "-L",
             "-A", CHROME_UA,
+            ...BROWSER_HEADERS,
             "-H", `Referer: ${movieItem.href}`,
             "--connect-timeout", "8",
             "-m", "15",
