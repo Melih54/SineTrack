@@ -2,7 +2,18 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Play, Star, LucideIcon } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Star,
+  Film,
+  Tv,
+  Trophy,
+  Clapperboard,
+  Rocket,
+  Sparkles,
+} from "lucide-react";
 import { getImageUrl } from "@/lib/tmdb";
 
 export interface ShelfItem {
@@ -17,11 +28,22 @@ export interface ShelfItem {
   genres?: string;
 }
 
+const ICON_MAP = {
+  film: Film,
+  tv: Tv,
+  trophy: Trophy,
+  clapperboard: Clapperboard,
+  rocket: Rocket,
+  sparkles: Sparkles,
+};
+
+export type ShelfIconType = keyof typeof ICON_MAP;
+
 interface MediaShelfProps {
   id?: string;
   title: string;
   subtitle?: string;
-  icon: LucideIcon;
+  iconName?: ShelfIconType;
   iconGradient?: string;
   iconColor?: string;
   items: ShelfItem[];
@@ -33,7 +55,7 @@ export default function MediaShelf({
   id,
   title,
   subtitle,
-  icon: Icon,
+  iconName = "film",
   iconGradient = "from-red-600/20 to-orange-500/20",
   iconColor = "text-red-500",
   items,
@@ -41,6 +63,7 @@ export default function MediaShelf({
   badgeText,
 }: MediaShelfProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const Icon = ICON_MAP[iconName] || Film;
 
   const scroll = (direction: "left" | "right") => {
     if (!scrollRef.current) return;

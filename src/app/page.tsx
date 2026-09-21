@@ -5,7 +5,6 @@ import Top10Shelf from "@/components/home/Top10Shelf";
 import MediaShelf from "@/components/home/MediaShelf";
 import PlatformFeatures from "@/components/home/PlatformFeatures";
 import ContinueWatching from "@/components/home/ContinueWatching";
-import { Film, Tv, Trophy, Rocket, Sparkles, Clapperboard } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -129,7 +128,7 @@ export default async function HomePage() {
           id="movies-shelf"
           title="Popüler ve Vizyondaki Filmler"
           subtitle="En çok aranan, soluksuz izlenen popüler sinema filmleri"
-          icon={Film}
+          iconName="film"
           iconGradient="from-red-600/20 to-orange-500/20"
           iconColor="text-red-500"
           badgeText="1080p & 4K"
@@ -142,7 +141,7 @@ export default async function HomePage() {
           id="series-shelf"
           title="Dünyayı Kasıp Kavuran Diziler"
           subtitle="Tüm sezonları ve bölümleriyle kesintisiz dizi maratonu"
-          icon={Tv}
+          iconName="tv"
           iconGradient="from-rose-500/20 to-purple-600/20"
           iconColor="text-rose-400"
           badgeText="Tüm Sezonlar"
@@ -158,7 +157,7 @@ export default async function HomePage() {
           id="top-rated"
           title="Sinema Tarihinin Zirvesi (IMDb 8.0+)"
           subtitle="Kült klasikler, Oscar ödüllü şaheserler ve yüksek puanlı başyapıtlar"
-          icon={Trophy}
+          iconName="trophy"
           iconGradient="from-amber-500/20 to-yellow-600/20"
           iconColor="text-amber-400"
           badgeText="Ödüllü Seçki"
@@ -172,7 +171,7 @@ export default async function HomePage() {
             id="turkish-classics"
             title="Türk Sineması & Sevilen Yerli Klasikler"
             subtitle="Gönüllerde taht kurmuş efsane yerli dizi ve komedi klasikleri"
-            icon={Clapperboard}
+            iconName="clapperboard"
             iconGradient="from-cyan-500/20 to-blue-600/20"
             iconColor="text-cyan-400"
             badgeText="Yerli Yapım"
@@ -187,7 +186,7 @@ export default async function HomePage() {
             id="4k-uhd"
             title="Aksiyon & Bilim Kurgu Tutkunları İçin"
             subtitle="Görsel şölen sunan yüksek bütçeli 4K ve Full HD maceralar"
-            icon={Rocket}
+            iconName="rocket"
             iconGradient="from-purple-600/20 to-indigo-600/20"
             iconColor="text-purple-400"
             badgeText="Ultra HD"
