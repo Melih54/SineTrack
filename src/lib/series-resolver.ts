@@ -2,6 +2,8 @@ import { execFileSync } from "child_process";
 import crypto from "crypto";
 import { getWorkingDomain } from "./domain-resolver";
 import { resolveHdfSeriesEpisode } from "./hdfilmcehennemi-resolver";
+import { resolveRoketDiziEpisode } from "./roketdizi-resolver";
+import { resolveDiziboxEpisode } from "./dizibox-resolver";
 import { CURL_BIN } from "./curl";
 
 const DIZILLA_ALGO = "aes-256-cbc";
@@ -53,7 +55,7 @@ export interface SeriesSubtitle {
 }
 
 export interface SeriesStreamSource {
-  provider: "Dizipal" | "Dizilla" | "HDFilmCehennemi" | "DiziBal";
+  provider: "Dizipal" | "Dizilla" | "HDFilmCehennemi" | "DiziBal" | "RoketDizi" | "Dizibox";
   lang: "tr_dub" | "tr_sub" | "original";
   label: string;
   quality: string;
@@ -147,8 +149,46 @@ export function resolveSeriesEpisode(
 
   const results: SeriesStreamSource[] = [];
 
-  // 1. PRIMARY: Try Dizilla (Dual-Audio TR Dublaj + EN + Subtitles)
-  const dizillaBase = getWorkingDomain("dizilla");
+  // 1. TOP PRIORITY: Try RoketDizi (Direct 1080p TR Dublaj & Altyazı, ultra-fast Base64, zero Cloudflare block)
+  try {
+    const roketSources = resolveRoketDiziEpisode(title, originalTitle, season, episode);
+    if (roketSources && roketSources.length > 0) {
+      for (const rs of roketSources) {
+        results.push({
+          provider: "RoketDizi",
+          lang: rs.lang,
+          label: rs.label,
+          quality: rs.quality,
+          m3u8Url: rs.m3u8Url,
+          rawIframeSrc: rs.rawIframeSrc,
+          referer: rs.referer,
+          embedUrl: rs.embedUrl,
+          subtitles: rs.subtitles,
+        });
+      }
+    }
+  } catch (e) {}
+
+  // 2. SECONDARY: Try Dizibox (Vidmoly direct 1080p HLS)
+  try {
+    const dizibox = resolveDiziboxEpisode(title, originalTitle, season, episode);
+    if (dizibox && dizibox.m3u8Url) {
+      results.push({
+        provider: "Dizibox",
+        lang: dizibox.lang,
+        label: dizibox.label,
+        quality: dizibox.quality,
+        m3u8Url: dizibox.m3u8Url,
+        rawIframeSrc: dizibox.rawIframeSrc,
+        referer: dizibox.referer,
+        embedUrl: dizibox.embedUrl,
+      });
+    }
+  } catch (e) {}
+
+  // 3. TERTIARY: If still needed, try Dizilla (Dual-Audio TR Dublaj + EN + Subtitles)
+  if (results.length === 0) {
+    const dizillaBase = getWorkingDomain("dizilla");
   for (const slug of slugs) {
     try {
       const candidateUrls = [
@@ -295,9 +335,9 @@ export function resolveSeriesEpisode(
       if (results.length > 0) break;
     } catch {}
   }
+  }
 
-  // 2. SECONDARY / RESILIENT FALLBACK: Try HDFilmCehennemi
-  // If Dizilla has no playable stream (e.g. The Mentalist), HDFilmCehennemi immediately steps in!
+  // 4. FALLBACK: Try HDFilmCehennemi
   if (results.length === 0) {
     try {
       const hdf = resolveHdfSeriesEpisode(title, originalTitle, season, episode);

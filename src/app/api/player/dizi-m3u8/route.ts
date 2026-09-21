@@ -3,13 +3,64 @@ import { resolveSeriesEpisode } from "@/lib/series-resolver";
 import { resolveHdfMovie } from "@/lib/hdfilmcehennemi-resolver";
 import { execFileSync } from "child_process";
 import { CURL_BIN } from "@/lib/curl";
-
 import { resolveDizibalSource } from "@/lib/dizibal-resolver";
 
 export const dynamic = "force-dynamic";
 
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+/**
+ * Checks if a chunk/segment URL can be downloaded directly by the user's browser
+ * without routing through Railway server stream proxy.
+ */
+function shouldProxyChunk(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    if (
+      host.includes("vmpx.online") ||
+      host.includes("cdnimages") ||
+      host.includes("rapidvid") ||
+      host.includes("vidmoly") ||
+      host.includes("hotstream") ||
+      host.includes("googleapis.com") ||
+      host.includes("cloudflare")
+    ) {
+      return false; // Full CORS enabled, client downloads directly from CDN at line-speed!
+    }
+  } catch {}
+  return true; // Hotlink protected domains (like *.cfd, dplayer, etc.) need proxy
+}
+
+async function fetchPlaylistText(url: string, referer: string): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": CHROME_UA,
+        "Referer": referer,
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      return await res.text();
+    }
+  } catch {}
+
+  // Fallback to curl
+  return execFileSync(
+    CURL_BIN,
+    [
+      "-s",
+      "-A",
+      CHROME_UA,
+      "-H",
+      `Referer: ${referer}`,
+      url,
+    ],
+    { timeout: 10000, maxBuffer: 10 * 1024 * 1024 }
+  ).toString("utf8");
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -19,18 +70,7 @@ export async function GET(req: Request) {
   // 1. SUB-PLAYLIST MODE (audio track or video resolution chunks playlist)
   if (playlistUrl) {
     try {
-      const content = execFileSync(
-        CURL_BIN,
-        [
-          "-s",
-          "-A",
-          CHROME_UA,
-          "-H",
-          `Referer: ${referer}`,
-          playlistUrl,
-        ],
-        { timeout: 10000, maxBuffer: 10 * 1024 * 1024 }
-      ).toString("utf8");
+      const content = await fetchPlaylistText(playlistUrl, referer);
 
       const lines = content.split(/\r?\n/);
       const rewritten = lines.map((line) => {
@@ -42,10 +82,16 @@ export async function GET(req: Request) {
           });
         }
         if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+          if (!shouldProxyChunk(trimmed)) {
+            return trimmed;
+          }
           return `/api/player/stream-proxy?ref=${encodeURIComponent(referer)}&url=${encodeURIComponent(trimmed)}`;
         }
         if (trimmed && !trimmed.startsWith("#")) {
           const abs = new URL(trimmed, playlistUrl).href;
+          if (!shouldProxyChunk(abs)) {
+            return abs;
+          }
           return `/api/player/stream-proxy?ref=${encodeURIComponent(referer)}&url=${encodeURIComponent(abs)}`;
         }
         return line;
@@ -117,18 +163,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const masterContent = execFileSync(
-      CURL_BIN,
-      [
-        "-s",
-        "-A",
-        CHROME_UA,
-        "-H",
-        `Referer: ${referer}`,
-        streamUrl,
-      ],
-      { timeout: 10000, maxBuffer: 10 * 1024 * 1024 }
-    ).toString("utf8");
+    const masterContent = await fetchPlaylistText(streamUrl, referer);
 
     // Rewrite master playlist lines
     const lines = masterContent.split(/\r?\n/);

@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { execFileSync } from "child_process";
-import { CURL_BIN } from "@/lib/curl";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +8,7 @@ const CHROME_UA =
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   let targetUrl = searchParams.get("url");
-  const referer = searchParams.get("ref") || "https://sn.dplayer82.site/";
+  const referer = searchParams.get("ref") || "https://four.pichive.online/";
 
   if (!targetUrl) {
     return new NextResponse("URL parameter required", { status: 400 });
@@ -21,7 +19,7 @@ export async function GET(req: Request) {
     try {
       targetUrl = new URL(targetUrl, referer).href;
     } catch {
-      targetUrl = `https://sn.dplayer82.site${targetUrl}`;
+      targetUrl = `https://four.pichive.online${targetUrl}`;
     }
   }
 
@@ -31,55 +29,31 @@ export async function GET(req: Request) {
       "User-Agent": CHROME_UA,
       "Referer": referer,
       "Origin": referer.endsWith("/") ? referer.slice(0, -1) : referer,
+      "Accept": "*/*",
     };
 
     if (rangeHeader) {
       fetchHeaders["Range"] = rangeHeader;
     }
 
-    let upstreamRes: Response | null = null;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    let upstreamRes: Response;
     try {
       upstreamRes = await fetch(targetUrl, {
         headers: fetchHeaders,
+        signal: controller.signal,
       });
-    } catch (fetchErr) {
-      // Node fetch failed (e.g. network/SSL), fallback to curl
-      try {
-        const curlBuf = execFileSync(
-          CURL_BIN,
-          [
-            "-s",
-            "-L",
-            "-A",
-            CHROME_UA,
-            "-H",
-            `Referer: ${referer}`,
-            targetUrl,
-          ],
-          { maxBuffer: 30 * 1024 * 1024, timeout: 15000 }
-        );
-
-        let contentType = "video/mp2t";
-        if (targetUrl.includes(".vtt") || targetUrl.endsWith(".vtt")) {
-          contentType = "text/vtt; charset=utf-8";
-        }
-
-        return new Response(curlBuf, {
-          status: 200,
-          headers: {
-            "Content-Type": contentType,
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-            "Cache-Control": "public, max-age=86400, immutable",
-          },
-        });
-      } catch (curlErr: any) {
-        return new NextResponse("Stream proxy error: " + curlErr.message, { status: 502 });
-      }
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     if (!upstreamRes.ok && upstreamRes.status !== 206) {
-      return new NextResponse(`Upstream error: ${upstreamRes.status}`, { status: upstreamRes.status });
+      return new NextResponse(`Upstream error: ${upstreamRes.status}`, {
+        status: upstreamRes.status,
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
     }
 
     const contentLength = upstreamRes.headers.get("content-length");
@@ -88,7 +62,12 @@ export async function GET(req: Request) {
 
     if (targetUrl.includes(".vtt") || targetUrl.endsWith(".vtt")) {
       contentType = "text/vtt; charset=utf-8";
-    } else if (contentType.includes("image") || targetUrl.includes(".jpg") || targetUrl.includes(".png")) {
+    } else if (
+      contentType.includes("image") ||
+      targetUrl.includes(".jpg") ||
+      targetUrl.includes(".png") ||
+      targetUrl.includes(".ts")
+    ) {
       contentType = "video/mp2t";
     }
 
@@ -97,7 +76,7 @@ export async function GET(req: Request) {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
       "Accept-Ranges": "bytes",
-      "Cache-Control": "public, max-age=86400, immutable",
+      "Cache-Control": "public, max-age=86400, s-maxage=86400, immutable",
     };
 
     if (contentLength) {
@@ -112,6 +91,9 @@ export async function GET(req: Request) {
       headers: responseHeaders,
     });
   } catch (err: any) {
-    return new NextResponse("Stream proxy error: " + err.message, { status: 500 });
+    return new NextResponse("Stream proxy error: " + err.message, {
+      status: 502,
+      headers: { "Access-Control-Allow-Origin": "*" },
+    });
   }
 }

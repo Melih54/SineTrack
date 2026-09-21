@@ -63,6 +63,7 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="referrer" content="no-referrer">
   <title>${displayTitle} | SineTrack Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
   <script src="https://cdn.jsdelivr.net/npm/artplayer@5/dist/artplayer.js"></script>
@@ -355,6 +356,12 @@ export function renderArtplayerHtml(opts: ArtplayerOptions): string {
               lowLatencyMode: false,
               backBufferLength: 90,
               maxBufferLength: 60,
+              maxMaxBufferLength: 120,
+              maxBufferSize: 60 * 1000 * 1000,
+              maxBufferHole: 0.5,
+              highBufferWatchdogPeriod: 2,
+              nudgeOffset: 0.2,
+              nudgeMaxRetry: 5,
             });
             hls.loadSource(url);
             hls.attachMedia(video);

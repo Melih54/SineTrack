@@ -18,12 +18,26 @@ export async function GET(req: Request) {
   const lang = (searchParams.get("lang") || "tr_dub") as "tr_dub" | "tr_sub" | "original";
 
   const sourceParam = searchParams.get("source");
+  const isRoketRequested = sourceParam === "roket";
+  const isDiziboxRequested = sourceParam === "dizibox";
   const isAtomRequested = sourceParam === "atom";
 
   let matched: SeriesStreamSource | null = null;
 
-  // 1. If user requested Atom, check Dizilla / Dizipal first!
-  if (isAtomRequested && !isMovie) {
+  // 1. If user explicitly requested RoketDizi, Dizibox, or Atom
+  if (isRoketRequested && !isMovie) {
+    try {
+      const { resolveRoketDiziEpisode } = await import("@/lib/roketdizi-resolver");
+      const rSources = resolveRoketDiziEpisode(title, originalTitle, season, episode);
+      matched = rSources.find((s) => s.lang === lang) || rSources[0] || null;
+    } catch (e) {}
+  } else if (isDiziboxRequested && !isMovie) {
+    try {
+      const { resolveDiziboxEpisode } = await import("@/lib/dizibox-resolver");
+      const dSource = resolveDiziboxEpisode(title, originalTitle, season, episode);
+      if (dSource) matched = dSource;
+    } catch (e) {}
+  } else if (isAtomRequested && !isMovie) {
     try {
       const sources = resolveSeriesEpisode(title, originalTitle, season, episode);
       matched = sources.find((s) => s.lang === lang) || sources[0] || null;

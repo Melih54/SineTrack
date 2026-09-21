@@ -88,9 +88,25 @@ export const EMBED_SERVERS: EmbedServer[] = [
   // --- TÜRKÇE ALTYAZILI (tr_sub) ---
   // ==========================================
   {
+    id: "roket-player-sub",
+    name: "🚀 RoketDizi (1080p HLS)",
+    badge: "Önerilen • Çok Hızlı",
+    language: "tr_sub",
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
+      `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=tr_sub&source=roket`,
+  },
+  {
+    id: "dizibox-player-sub",
+    name: "📦 Dizibox (Vidmoly HLS)",
+    badge: "Vidmoly 1080p",
+    language: "tr_sub",
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
+      `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=tr_sub&source=dizibox`,
+  },
+  {
     id: "dizibal-player-sub",
     name: "🐝 DiziBal (HLS 1080p)",
-    badge: "Önerilen • Çift Ses",
+    badge: "Çift Ses",
     language: "tr_sub",
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=tr_sub`,
@@ -128,9 +144,25 @@ export const EMBED_SERVERS: EmbedServer[] = [
   // --- TÜRKÇE DUBLAJ (tr_dub) ---
   // ==========================================
   {
+    id: "roket-player-dub",
+    name: "🚀 RoketDizi Dublaj (1080p HLS)",
+    badge: "Önerilen • Dublaj",
+    language: "tr_dub",
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
+      `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=tr_dub&source=roket`,
+  },
+  {
+    id: "dizibox-player-dub",
+    name: "📦 Dizibox (Vidmoly HLS)",
+    badge: "Vidmoly 1080p",
+    language: "tr_dub",
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
+      `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=tr_dub&source=dizibox`,
+  },
+  {
     id: "dizibal-player-dub",
     name: "🐝 DiziBal Dublaj (HLS HD)",
-    badge: "Önerilen • Türkçe Dublaj",
+    badge: "Türkçe Dublaj",
     language: "tr_dub",
     getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
       `/api/player/dizibal-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=tr_dub`,
@@ -167,6 +199,14 @@ export const EMBED_SERVERS: EmbedServer[] = [
   // ==========================================
   // --- ORİJİNAL DİL (original) ---
   // ==========================================
+  {
+    id: "roket-player-orig",
+    name: "🚀 RoketDizi Orijinal (1080p HLS)",
+    badge: "Önerilen • Orijinal Ses",
+    language: "original",
+    getUrl: ({ mediaType, tmdbId, season = 1, episode = 1, title = "" }) =>
+      `/api/player/dizi-embed?title=${encodeURIComponent(title)}&tmdbId=${tmdbId}&mediaType=${mediaType}&season=${season}&episode=${episode}&lang=original&source=roket`,
+  },
   {
     id: "dizibal-player-orig",
     name: "🐝 DiziBal Orijinal (HLS HD)",

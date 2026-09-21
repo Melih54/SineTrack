@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sinetrack-v1';
+const CACHE_NAME = 'sinetrack-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -10,15 +10,15 @@ const STATIC_ASSETS = [
 
 // Install Event: Cache Core Shell
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS);
     })
   );
-  self.skipWaiting();
 });
 
-// Activate Event: Cleanup Old Caches
+// Activate Event: Cleanup Old Caches (including sinetrack-v1)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -34,24 +34,29 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch Event: Network-First with Cache Fallback for navigation, bypass for video streams
+// Fetch Event: Network-First with Cache Fallback for navigation, complete bypass for all video and API requests
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Bypass video streams, all API routes, proxy calls, and external CDNs
+  // Complete bypass for external CDNs, video streams, segments, and API routes
   if (
+    url.origin !== self.location.origin ||
     url.pathname.startsWith('/api/') ||
     url.pathname.includes('.m3u8') ||
     url.pathname.includes('.ts') ||
     url.pathname.includes('.mp4') ||
+    url.pathname.includes('.jpg') ||
+    url.pathname.includes('.png') ||
+    url.pathname.includes('.vtt') ||
+    url.pathname.includes('.txt') ||
     url.pathname.includes('/dl?') ||
     request.method !== 'GET'
   ) {
-    return;
+    return; // Pass through directly to native browser networking
   }
 
-  // Network-first strategy for pages and API
+  // Network-first strategy for pages and static assets
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -76,7 +81,7 @@ self.addEventListener('fetch', (event) => {
           if (request.mode === 'navigate') {
             return caches.match('/');
           }
-          return new Response('Offline', { status: 503, statusText: 'Offline' });
+          return new Response('', { status: 404, statusText: 'Not Found' });
         });
       })
   );
