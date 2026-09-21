@@ -1,210 +1,199 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import MediaCard from "@/components/MediaCard";
-import { Play, Info, Flame, Trophy, Tv, Sparkles, Film } from "lucide-react";
+import HeroBannerCarousel from "@/components/home/HeroBannerCarousel";
+import CategoryPills from "@/components/home/CategoryPills";
+import Top10Shelf from "@/components/home/Top10Shelf";
+import MediaShelf from "@/components/home/MediaShelf";
+import PlatformFeatures from "@/components/home/PlatformFeatures";
+import ContinueWatching from "@/components/home/ContinueWatching";
+import { Film, Tv, Trophy, Rocket, Sparkles, Clapperboard } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  // Veritabanımızdaki 70+ film ve diziden verileri çek
-  const [featuredItem, popularMovies, popularTV, topRated, turkishClassics] = await Promise.all([
-    prisma.mediaItem.findFirst({
-      where: { isFeatured: true },
-      orderBy: { updatedAt: "desc" },
+  // Fetch curated sets of movies & series from database
+  const [
+    heroItemsRaw,
+    popularMovies,
+    popularTV,
+    topRated,
+    turkishClassics,
+    actionSciFi,
+  ] = await Promise.all([
+    // 1. Top 5 items for the Hero Banner Carousel
+    prisma.mediaItem.findMany({
+      where: {
+        OR: [{ isFeatured: true }, { voteAverage: { gte: 8.0 } }],
+      },
+      orderBy: { voteAverage: "desc" },
+      take: 5,
     }),
+
+    // 2. Popular / Newest Movies
     prisma.mediaItem.findMany({
       where: { mediaType: "movie" },
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 12,
     }),
+
+    // 3. Popular / Binge-worthy TV Series
     prisma.mediaItem.findMany({
       where: { mediaType: "tv" },
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 12,
     }),
+
+    // 4. Top Rated (IMDb 8+)
     prisma.mediaItem.findMany({
-      where: { mediaType: "movie" },
+      where: { voteAverage: { gte: 8.0 } },
       orderBy: { voteAverage: "desc" },
-      take: 10,
+      take: 12,
     }),
+
+    // 5. Turkish Cinema & Classics
     prisma.mediaItem.findMany({
-      where: { genres: { contains: "Komedi" } },
+      where: {
+        OR: [
+          { genres: { contains: "Yerli" } },
+          { genres: { contains: "Komedi" } },
+        ],
+      },
       orderBy: { voteAverage: "desc" },
-      take: 10,
+      take: 12,
+    }),
+
+    // 6. Action & Sci-Fi Thrillers
+    prisma.mediaItem.findMany({
+      where: {
+        OR: [
+          { genres: { contains: "Aksiyon" } },
+          { genres: { contains: "Bilim" } },
+        ],
+      },
+      orderBy: { voteAverage: "desc" },
+      take: 12,
     }),
   ]);
 
-  const hero = featuredItem || popularMovies[0];
-  const isHeroMovie = hero ? hero.mediaType === "movie" : true;
-  const heroId = hero?.tmdbId || hero?.id;
-  const heroLink = isHeroMovie ? `/movie/${heroId}` : `/tv/${heroId}`;
+  // Fallback if hero items are fewer than 3
+  const heroItems =
+    heroItemsRaw.length >= 3
+      ? heroItemsRaw
+      : await prisma.mediaItem.findMany({
+          orderBy: { voteAverage: "desc" },
+          take: 5,
+        });
 
-  // Helper format
-  const toMediaItemFormat = (item: any) => ({
-    id: item.tmdbId || item.id,
+  // Helper formatter for components
+  const formatItem = (item: any) => ({
+    id: item.id,
+    tmdbId: item.tmdbId,
     title: item.title,
-    name: item.mediaType === "tv" ? item.title : undefined,
     overview: item.overview,
-    poster_path: item.posterPath,
-    backdrop_path: item.backdropPath,
-    media_type: item.mediaType as "movie" | "tv",
-    vote_average: item.voteAverage,
-    release_date: item.releaseYear ? `${item.releaseYear}-01-01` : undefined,
+    posterPath: item.posterPath,
+    backdropPath: item.backdropPath,
+    mediaType: item.mediaType as "movie" | "tv",
+    voteAverage: item.voteAverage,
+    releaseYear: item.releaseYear,
+    genres: item.genres,
   });
 
+  const heroFormatted = heroItems.map(formatItem);
+  const top10Formatted = [...popularMovies, ...popularTV]
+    .sort((a, b) => b.voteAverage - a.voteAverage)
+    .slice(0, 10)
+    .map(formatItem);
+
   return (
-    <div className="space-y-12 pb-16">
-      {/* Hero Banner */}
-      {hero && (
-        <div className="relative w-full h-[65vh] sm:h-[72vh] min-h-[480px] max-h-[750px] overflow-hidden">
-          <div className="absolute inset-0">
-            <img
-              src={hero.backdropPath || hero.posterPath}
-              alt={hero.title}
-              className="w-full h-full object-cover object-center scale-105"
-            />
-            {/* Multi-layered cinematic gradients */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#08090e] via-[#08090e]/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#08090e] via-[#08090e]/50 to-transparent" />
-            <div className="absolute inset-0 bg-radial from-transparent via-[#08090e]/20 to-[#08090e]/80 pointer-events-none" />
-          </div>
+    <div className="relative min-h-screen space-y-12 sm:space-y-16 pb-20 overflow-x-hidden">
+      {/* Ambient Lighting Background Accents */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[80vw] h-[400px] bg-gradient-to-b from-red-600/10 via-purple-600/5 to-transparent blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-[800px] right-0 w-[500px] h-[500px] bg-amber-500/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-[1600px] left-0 w-[500px] h-[500px] bg-red-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
 
-          <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
-            <div className="max-w-2xl space-y-4">
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Öne Çıkan Başyapıt</span>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/10 border border-white/15 text-gray-200">
-                  {hero.releaseYear || "2024"}
-                </span>
-                <span className="px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-red-600 text-white shadow-sm">
-                  1080p Full HD
-                </span>
-              </div>
+      {/* 1. CINEMATIC HERO CAROUSEL */}
+      <HeroBannerCarousel items={heroFormatted} />
 
-              <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight drop-shadow-md leading-tight">
-                {hero.title}
-              </h1>
+      {/* 2. CATEGORY / MOOD FILTER PILLS */}
+      <CategoryPills />
 
-              <p className="text-sm sm:text-base text-gray-300 line-clamp-3 leading-relaxed drop-shadow max-w-xl">
-                {hero.overview}
-              </p>
+      {/* 3. MAIN CONTENT CONTAINER */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 sm:space-y-16">
+        {/* KALDIĞIN YERDEN DEVAM ET (CLIENT COMPONENT) */}
+        <ContinueWatching />
 
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <Link
-                  href={heroLink}
-                  className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-600/40 hover:scale-105 transition-all"
-                >
-                  <Play className="w-5 h-5 fill-white" />
-                  <span>Hemen İzle</span>
-                </Link>
-                <Link
-                  href={heroLink}
-                  className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl backdrop-blur-md border border-white/15 transition-all"
-                >
-                  <Info className="w-5 h-5" />
-                  <span>Detaylar & Bölümler</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        {/* TÜRKİYE TOP 10 (NETFLIX STYLE) */}
+        <Top10Shelf items={top10Formatted} />
 
-      {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        {/* Vizyondaki Popüler Filmler */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-orange-500/10 text-orange-500 border border-orange-500/20">
-                <Flame className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Popüler Filmler</h2>
-            </div>
-            <Link
-              href="/movies"
-              className="text-xs font-semibold text-gray-400 hover:text-white transition-colors"
-            >
-              Tüm Filmleri Gör ({popularMovies.length}+) →
-            </Link>
-          </div>
+        {/* POPÜLER FİLMLER SHELF */}
+        <MediaShelf
+          id="movies-shelf"
+          title="Popüler ve Vizyondaki Filmler"
+          subtitle="En çok aranan, soluksuz izlenen popüler sinema filmleri"
+          icon={Film}
+          iconGradient="from-red-600/20 to-orange-500/20"
+          iconColor="text-red-500"
+          badgeText="1080p & 4K"
+          items={popularMovies.map(formatItem)}
+          viewAllHref="/movies"
+        />
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {popularMovies.map((item) => (
-              <MediaCard key={item.id} item={toMediaItemFormat(item)} />
-            ))}
-          </div>
-        </section>
+        {/* POPÜLER DİZİLER & SEZONLAR */}
+        <MediaShelf
+          id="series-shelf"
+          title="Dünyayı Kasıp Kavuran Diziler"
+          subtitle="Tüm sezonları ve bölümleriyle kesintisiz dizi maratonu"
+          icon={Tv}
+          iconGradient="from-rose-500/20 to-purple-600/20"
+          iconColor="text-rose-400"
+          badgeText="Tüm Sezonlar"
+          items={popularTV.map(formatItem)}
+          viewAllHref="/series"
+        />
 
-        {/* Popüler Diziler */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                <Tv className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Popüler Diziler & Sezonlar</h2>
-            </div>
-            <Link
-              href="/series"
-              className="text-xs font-semibold text-gray-400 hover:text-white transition-colors"
-            >
-              Tüm Dizileri Gör ({popularTV.length}+) →
-            </Link>
-          </div>
+        {/* PLATFORM STANDARTLARI & ÖZELLİKLERİ BANNER */}
+        <PlatformFeatures />
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {popularTV.map((item) => (
-              <MediaCard key={item.id} item={toMediaItemFormat(item)} />
-            ))}
-          </div>
-        </section>
+        {/* SİNEMA TARİHİNİN ZİRVESİ (IMDb 8.0+ BAŞYAPITLAR) */}
+        <MediaShelf
+          id="top-rated"
+          title="Sinema Tarihinin Zirvesi (IMDb 8.0+)"
+          subtitle="Kült klasikler, Oscar ödüllü şaheserler ve yüksek puanlı başyapıtlar"
+          icon={Trophy}
+          iconGradient="from-amber-500/20 to-yellow-600/20"
+          iconColor="text-amber-400"
+          badgeText="Ödüllü Seçki"
+          items={topRated.map(formatItem)}
+          viewAllHref="/movies"
+        />
 
-        {/* En Yüksek Puanlı Filmler */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                <Trophy className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-white tracking-tight">En Yüksek Puanlı Başyapıtlar</h2>
-            </div>
-            <Link
-              href="/movies"
-              className="text-xs font-semibold text-gray-400 hover:text-white transition-colors"
-            >
-              Tümünü Gör →
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {topRated.map((item) => (
-              <MediaCard key={item.id} item={toMediaItemFormat(item)} />
-            ))}
-          </div>
-        </section>
-
-        {/* Sevilen Komediler & Türk Sineması */}
+        {/* TÜRK SİNEMASI & YERLİ KLASİKLER */}
         {turkishClassics.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <Film className="w-5 h-5" />
-                </div>
-                <h2 className="text-xl font-bold text-white tracking-tight">Komedi & Klasikler</h2>
-              </div>
-            </div>
+          <MediaShelf
+            id="turkish-classics"
+            title="Türk Sineması & Sevilen Yerli Klasikler"
+            subtitle="Gönüllerde taht kurmuş efsane yerli dizi ve komedi klasikleri"
+            icon={Clapperboard}
+            iconGradient="from-cyan-500/20 to-blue-600/20"
+            iconColor="text-cyan-400"
+            badgeText="Yerli Yapım"
+            items={turkishClassics.map(formatItem)}
+            viewAllHref="/movies?genre=Yerli%20Yapım"
+          />
+        )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {turkishClassics.map((item) => (
-                <MediaCard key={item.id} item={toMediaItemFormat(item)} />
-              ))}
-            </div>
-          </section>
+        {/* AKSİYON & BİLİM KURGU SEÇKİSİ */}
+        {actionSciFi.length > 0 && (
+          <MediaShelf
+            id="4k-uhd"
+            title="Aksiyon & Bilim Kurgu Tutkunları İçin"
+            subtitle="Görsel şölen sunan yüksek bütçeli 4K ve Full HD maceralar"
+            icon={Rocket}
+            iconGradient="from-purple-600/20 to-indigo-600/20"
+            iconColor="text-purple-400"
+            badgeText="Ultra HD"
+            items={actionSciFi.map(formatItem)}
+            viewAllHref="/movies?genre=Aksiyon"
+          />
         )}
       </div>
     </div>
