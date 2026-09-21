@@ -1,0 +1,32 @@
+{
+  "name": "SineTrack - Film & Dizi Platformu",
+  "short_name": "SineTrack",
+  "description": "Abonelik sınırları olmadan 1080p ve 4K Türkçe dublaj ve altyazılı filmleri ve dizileri keşfedin, izleyin.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08090e",
+  "theme_color": "#08090e",
+  "orientation": "any",
+  "scope": "/",
+  "categories": ["entertainment", "video", "movies"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
