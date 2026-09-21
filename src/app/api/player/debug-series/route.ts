@@ -81,23 +81,43 @@ export async function GET(req: Request) {
     steps.hdfError = e.message;
   }
 
-  // 4. Check Dizipal
-  const dizipalBase = getWorkingDomain("dizipal");
-  steps.dizipalBase = dizipalBase;
-  try {
-    const dizipalUrl = `${dizipalBase}/bolum/breaking-bad-1x1`;
-    const dizipalHtml = execFileSync(
-      CURL_BIN,
-      ["-s", "-L", "-A", CHROME_UA, ...BROWSER_HEADERS, "--connect-timeout", "6", "-m", "10", dizipalUrl],
-      { timeout: 12000 }
-    ).toString("utf8");
-    steps.dizipalLength = dizipalHtml.length;
-    steps.dizipalHasData = dizipalHtml.includes('data-rm-k="true"');
-    steps.dizipalHasCloudflare = dizipalHtml.includes("cf-browser-verification") || dizipalHtml.includes("Attention Required") || dizipalHtml.includes("Just a moment");
-    steps.dizipalSnippet = dizipalHtml.slice(0, 200);
-  } catch (e: any) {
-    steps.dizipalError = e.message;
+  // 5. Probe candidates
+  const candidates = [
+    "https://hdfilmcehennemi.vip/search?q=Breaking%20Bad",
+    "https://hdfilmcehennemi.com/search?q=Breaking%20Bad",
+    "https://hdfilmcehennemi.life/search?q=Breaking%20Bad",
+    "https://www.hdfilmcehennemi.net/search?q=Breaking%20Bad",
+    "https://dizilla.club/breaking-bad-1-sezon-1-bolum",
+    "https://dizilla2.com/breaking-bad-1-sezon-1-bolum",
+    "https://dizipal1581.com/bolum/breaking-bad-1x1",
+    "https://www.dizibox.tv/breaking-bad-1-sezon-1-bolum-izle/",
+    "https://yabancidizi.pw/dizi/breaking-bad/sezon-1/bolum-1",
+  ];
+
+  const probeResults: Record<string, any> = {};
+  for (const url of candidates) {
+    try {
+      const out = execFileSync(
+        CURL_BIN,
+        [
+          "-s",
+          "-o", "/dev/null",
+          "-w", "%{http_code}|%{size_download}",
+          "-L",
+          "-A", CHROME_UA,
+          ...BROWSER_HEADERS,
+          "--connect-timeout", "4",
+          "-m", "6",
+          url,
+        ],
+        { timeout: 8000 }
+      ).toString("utf8").trim();
+      probeResults[url] = out;
+    } catch (e: any) {
+      probeResults[url] = "ERROR: " + e.message;
+    }
   }
+  steps.probeResults = probeResults;
 
   return NextResponse.json(steps);
 }
